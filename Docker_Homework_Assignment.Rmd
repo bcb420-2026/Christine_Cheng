@@ -1,0 +1,21 @@
+---
+title: "Docker Homework Assignment"
+output: html_notebook
+---
+
+```{r}
+rdm_values <- sample(x = 1:500, size = 50, replace = TRUE)  # generate random matrix values
+expression_data <- matrix(data = rdm_values, nrow = 5, ncol = 10) # form matrix
+
+# rename matrix rows and columns
+rownames(expression_data) <- paste0("gene", 1:5)
+colnames(expression_data) <- c(
+  paste0("cond", 1:5),
+  paste0("ctrl", 1:5)
+)
+
+# calculate fold change
+fold_change <- rowMeans(expression_data[, 1:5, drop = FALSE]) /
+               rowMeans(expression_data[, 6:10, drop = FALSE])
+fold_change
+```

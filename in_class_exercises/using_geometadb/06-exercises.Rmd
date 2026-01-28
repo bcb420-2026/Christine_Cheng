@@ -1,19 +1,142 @@
-
 # Exercises: Inspect Specific GEO Series
 
 In this exercise, you'll retrieve metadata for the following GEO Series and answer:
 
 **GSE IDs:** "GSE201427","GSE166530","GSE162183","GSE186458"
 
+```{r}
+gse_ids <- c(
+  "GSE201427",
+  "GSE166530",
+  "GSE162183",
+  "GSE186458"
+)
+
+series_query <- paste0(
+  "SELECT gse, title, summary, overall_design, type, pubmed_id
+   FROM gse 
+   WHERE gse IN ('",
+  paste(gse_ids, collapse = "','"),
+  "')"
+)
+
+gse_info <- dbGetQuery(con, series_query)
+gse_info
+```
+
 **Questions per GSE**
 
-  1. **What type of data is it?  Describe it.** (platform technology; e.g., high-throughput sequencing, array)
-  1. **What disease or model is it using?** (infer from series title/summary/platform organism)
-  1. **How many samples are there? What type of data is associated with the record?** 
-  1. **How many control and how many disease?** 
-  1.  **Can you find out any information about the GEO dataset - GSE264108. Why or Why not?
-  
+1.  **What type of data is it? Describe it.** (platform technology; e.g., high-throughput sequencing, array)
+
+Based on the entries under the 'type' column, all 4 GSE results from high-throughput sequencing.
+
+2.  **What disease or model is it using?** (infer from series title/summary/platform organism)
+
+```{r}
+gsm_query <- paste0(
+  "SELECT gse.gse, gsm.gsm, gsm.title, gsm.source_name_ch1, 
+          gsm.characteristics_ch1, gsm.organism_ch1
+   FROM gse_gsm 
+   JOIN gsm ON gse_gsm.gsm = gsm.gsm
+   JOIN gse ON gse_gsm.gse = gse.gse
+   WHERE gse.gse IN ('",
+  paste(gse_ids, collapse = "','"),
+  "')"
+)
+
+gsm_info <- dbGetQuery(con, gsm_query)
+head(gsm_info)
+```
+
+Inferencing from details in the 'overall_design' and 'summary' columns, all 4 datasets are sourced from human samples. GSE162183 modelled human psoriasis, GSE166530 modelled SARS-CoV-2, GSE186458 looked at human DNA methylation markers overall, and GSE201427 modelled cancer. 3. **How many samples are there? What type of data is associated with the record?**
+
+```{r}
+table(gsm_info$gse)
+```
+
+There are 6, 41, 253, and 8 samples, respectively. GSE162183 had single-celled RNA-seq data, GSE166530 appeared to have bulk RNA-seq data, GSE186458 had DNA methylation data, and GSE201427 also had RNA-seq data.
+
+4.  **How many control and how many disease?**
+
+```{r}
+# control_pattern <- "(control|normal|healthy|wild[- ]?type)"
+# disease_pattern <- "(tumou?r|cancer|patient|disease|mutant|treated)"
+# 
+# gsm_info$combined_text <- paste(
+#   gsm_info$title,
+#   gsm_info$source_name_ch1,
+#   gsm_info$characteristics_ch1,
+#   sep = " "
+# )
+# 
+# gsm_info$group <- NA
+# gsm_info$group[grepl(control_pattern, gsm_info$combined_text, ignore.case = TRUE)] <- "Control"
+# gsm_info$group[grepl(disease_pattern, gsm_info$combined_text, ignore.case = TRUE)] <- "Disease"
+# 
+# table(gsm_info$gse, gsm_info$group, useNA = "ifany")
+```
+
+```{r}
+## GSE201427
+subset(
+  gsm_info,
+  gse == "GSE201427",
+  c("gsm", "title", "characteristics_ch1")
+)
+```
+
+Through manual inspection, GSE201427 has 5 controls (`siCtr`) and 3 disease (`siSF3B1`).
+
+```{r}
+## GSE166530
+df <- subset(
+  gsm_info,
+  gse == "GSE166530",
+  c("gsm", "title", "characteristics_ch1")
+)
+df
+
+# counting number of charactertized ass "positive" vs "negative"
+positive <- sum(grepl("covid-19 positive", df$characteristics_ch1, ignore.case = TRUE))
+negative <- sum(grepl("covid-19 negative", df$characteristics_ch1, ignore.case = TRUE))
+positive
+negative
+```
+
+Through manual inspection, GSE166530 has 'positive' or 'negative' for COVID-19 in the `chracteristics_ch1` column to indicate disease and control, respectively. Thus, GSE166530 has 5 controls and 36 disease.
+
+```{r}
+subset(
+  gsm_info,
+  gse == "GSE162183",
+  c("gsm", "title", "characteristics_ch1")
+)
+```
+
+GSE162183 has 3 control and 3 disease (psoriasis).
+
+```{r}
+subset(
+  gsm_info,
+  gse == "GSE186458",
+  c("gsm", "title", "characteristics_ch1")
+)
+```
+GSE186458 has all non-disease since this series modeled overall human methylation markers rather a specific disease.
+
+5.  \*\*Can you find out any information about the GEO dataset - GSE264108. Why or Why not?
+
+```{r}
+dbGetQuery(
+  con,
+  "SELECT * FROM gse WHERE gse = 'GSE264108'"
+)
+```
+
+No information could be found about GSE264108 using this package. However a search on the GEO website yielded the following record: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE264108>. It indicates that the data set was submitted in 2024 and made public only in 2025. As mentioned during lecture, the cached version of GEO that is the basis of the `GEOmetadb` package hasn't been updated in several years, meaning that GSE264108 likely couldn't be found since it was published more recently and `GEOmetadb` hasn't been updated yet.
 
 > Hint: Sample labels are not standardized. Use robust keyword detection (e.g., `control|normal|healthy|wild[- ]?type` vs. `tumou?r|cancer|patient|disease|mutant|treated`). Inspect a few GSM rows if the automatic inference is uncertain.
 
-
+```{r}
+dbDisconnect(con)
+```

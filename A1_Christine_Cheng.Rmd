@@ -1,0 +1,29 @@
+---
+title: "A1_Christine_Cheng"
+output: html_document
+---
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+if (!require("GEOquery", quietly = TRUE))
+  BiocManager::install("GEOquery")
+
+library(SummarizedExperiment)
+```
+
+```{r}
+dataset_se <- GEOquery::getRNASeqData("GSE166605")
+dataset_se
+metadata(dataset_se)
+rowData(dataset_se)
+```
+```{r}
+# insert check for previously downloaded dataset in tempdir() or specified destdir
+dataset_gse <- GEOquery::getGEO(GEO = "GSE166605", destdir = "~/projects/Christine_Cheng/A1_files", AnnotGPL = TRUE)
+dataset_gse
+```
+```{r}
+
+```

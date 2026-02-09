@@ -1,9 +1,23 @@
 ---
 title: "A1_Christine_Cheng"
-output: html_document
+author: "Christine En-Tse Cheng"
+date: "02-10-2026"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    code_folding: hide
+bibliography: A1_references.bib    # TODO: insert the citations/bibliography file
+link-citations: true            # this is for the citations/bibliography 
 ---
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE, # suppressing warning messages
+                      message = FALSE,
+                      knitr.kable.max_rows = 6)
 
-```{r}
+# install/attach packages
 if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
@@ -11,6 +25,10 @@ if (!require("GEOquery", quietly = TRUE))
   BiocManager::install("GEOquery")
 
 library(SummarizedExperiment)
+
+
+# read the data files - TODO: if needed
+
 ```
 
 ```{r}
@@ -25,5 +43,17 @@ dataset_gse <- GEOquery::getGEO(GEO = "GSE166605", destdir = "~/projects/Christi
 dataset_gse
 ```
 ```{r}
+dataset_suppFiles <- GEOquery::getGEOSuppFiles("GSE166605", makeDirectory = FALSE, baseDir = "~/projects/Christine_Cheng/A1_files")
+dataset_suppFiles
+```
 
+## References
+---
+nocite: '@*'
+---
+
+```{r}
+# TODO: generate citation bib
+citation("GEOquery")
+print(citation("rmarkdown"), bibtex=TRUE)
 ```

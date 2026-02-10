@@ -8,6 +8,8 @@ output:
     toc_depth: 3
     toc_float: true
     code_folding: hide
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
 bibliography: A1_files/A1_references.bib    # TODO: insert the citations/bibliography file
 link-citations: true            # this is for the citations/bibliography 
 nocite: '@*'
@@ -107,130 +109,130 @@ dim(counts)
 
 ### Data Trimming/Cleaning
 ```{r}
-# QC, filtering and identifier mapping
-# This chapter performs shared QC steps used by both limma-voom and edgeR and DEseq2.
-
-obj <- readRDS("data/d1_counts_and_meta.rds")
-counts <- obj$counts
-meta <- obj$meta
-mappings <- obj$mappings
-
-# Create a DGEList (edgeR data container)
-dge <- edgeR::DGEList(counts = counts)
-
-# Attach metadata
-# (not required, but helpful)
-dge$samples <- cbind(dge$samples, meta)
-
-dge$samples
-
-# filter lowly expressed genes
-design <- model.matrix(~ 0 +  treatment+ cellline, data = meta)
-
-keep <- edgeR::filterByExpr(dge, design)
-dge_f <- dge[keep, , keep.lib.sizes = FALSE]
-
-dim(dge)
+# # QC, filtering and identifier mapping
+# # This chapter performs shared QC steps used by both limma-voom and edgeR and DEseq2.
+# 
+# obj <- readRDS("data/d1_counts_and_meta.rds")
+# counts <- obj$counts
+# meta <- obj$meta
+# mappings <- obj$mappings
+# 
+# # Create a DGEList (edgeR data container)
+# dge <- edgeR::DGEList(counts = counts)
+# 
+# # Attach metadata
+# # (not required, but helpful)
+# dge$samples <- cbind(dge$samples, meta)
+# 
+# dge$samples
+# 
+# # filter lowly expressed genes
+# design <- model.matrix(~ 0 +  treatment+ cellline, data = meta)
+# 
+# keep <- edgeR::filterByExpr(dge, design)
+# dge_f <- dge[keep, , keep.lib.sizes = FALSE]
+# 
+# dim(dge)
 ```
 
 
 ## Data Normalization
 ```{r}
-# TMM normalization
-dge_f <- edgeR::calcNormFactors(dge_f, method = "TMM")
-dge_f$samples
+# # TMM normalization
+# dge_f <- edgeR::calcNormFactors(dge_f, method = "TMM")
+# dge_f$samples
 ```
 
 ```{r}
-# exploratory MDS plot
-current_colors <- RColorBrewer::brewer.pal(n = length(unique(meta$treatment)), "Set2")
-names(current_colors) <- levels(factor(meta$treatment))
-
-plotMDS(dge_f,
-  labels = meta$treatment,
-  col = current_colors[meta$treatment],
-  main = "MDS plot (colored by treatment)"
-)
-legend("topright",
-  legend = names(current_colors),
-  col = current_colors,
-  pch = 16,
-  bty = "n"
-)
-
-# " " " - coloured by cell line
-current_colors_cellline <- RColorBrewer::brewer.pal(n = length(unique(meta$cellline)), "Set1")
-names(current_colors_cellline) <- levels(factor(meta$cellline))
-
-plotMDS(dge_f,
-  labels = meta$cellline,
-  col = current_colors_cellline[meta$cellline],
-  main = "MDS plot (colored by cellline)"
-)
-legend("topright",
-  legend = names(current_colors_cellline),
-  col = current_colors_cellline,
-  pch = 16,
-  bty = "n"
-)
+# # exploratory MDS plot
+# current_colors <- RColorBrewer::brewer.pal(n = length(unique(meta$treatment)), "Set2")
+# names(current_colors) <- levels(factor(meta$treatment))
+# 
+# plotMDS(dge_f,
+#   labels = meta$treatment,
+#   col = current_colors[meta$treatment],
+#   main = "MDS plot (colored by treatment)"
+# )
+# legend("topright",
+#   legend = names(current_colors),
+#   col = current_colors,
+#   pch = 16,
+#   bty = "n"
+# )
+# 
+# # " " " - coloured by cell line
+# current_colors_cellline <- RColorBrewer::brewer.pal(n = length(unique(meta$cellline)), "Set1")
+# names(current_colors_cellline) <- levels(factor(meta$cellline))
+# 
+# plotMDS(dge_f,
+#   labels = meta$cellline,
+#   col = current_colors_cellline[meta$cellline],
+#   main = "MDS plot (colored by cellline)"
+# )
+# legend("topright",
+#   legend = names(current_colors_cellline),
+#   col = current_colors_cellline,
+#   pch = 16,
+#   bty = "n"
+# )
 ```
 
 ```{r}
-# log-CPM for visualization
-lcpm <- edgeR::cpm(dge_f, log = TRUE, prior.count = 1)
-summary(as.vector(lcpm))
+# # log-CPM for visualization
+# lcpm <- edgeR::cpm(dge_f, log = TRUE, prior.count = 1)
+# summary(as.vector(lcpm))
 ```
 
 ```{r}
-saveRDS(list(dge_f = dge_f, 
-             meta = meta, 
-             design = design, 
-             lcpm = lcpm, 
-             mappings = mappings),
-        file = "data/d1_qc_objects.rds")
+# saveRDS(list(dge_f = dge_f, 
+#              meta = meta, 
+#              design = design, 
+#              lcpm = lcpm, 
+#              mappings = mappings),
+#         file = "data/d1_qc_objects.rds")
 ```
 
 ### Gene ID mapping
 
 ```{r id_mapping}
-strip_ensembl_version <- function(x) sub("\\..*$", "", x)
-
-kable_head <- function(x, n = 5, caption = NULL) {
-  knitr::kable(utils::head(x, n), caption = caption)
-}
-
-mapped_counts <- data.frame(ensembl_gene_id = rownames(counts),counts)
-ids<- mapped_counts$ensembl_gene_id
-
-if (any(grepl("^ENSG", strip_ensembl_version(ids)))) {
-  library(biomaRt)
-  ensembl_ids <- unique(strip_ensembl_version(ids))
-  ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-
-  map <- getBM(
-    attributes = c("ensembl_gene_id", "hgnc_symbol"),
-    filters = "ensembl_gene_id",
-    values = ensembl_ids,
-    mart = ensembl
-  )
-
-  kable_head(map, 10, paste(": mapping preview"))
-
-counts_mapped <- mapped_counts %>%
-    left_join(map, by = "ensembl_gene_id") %>%
-  dplyr::select( ensembl_gene_id,hgnc_symbol, everything())
-
-
-  kable_head(counts_mapped[, 1:min(8, ncol(counts_mapped))], 5, paste(": mapped table preview"))
-}
+# strip_ensembl_version <- function(x) sub("\\..*$", "", x)
+# 
+# kable_head <- function(x, n = 5, caption = NULL) {
+#   knitr::kable(utils::head(x, n), caption = caption)
+# }
+# 
+# mapped_counts <- data.frame(ensembl_gene_id = rownames(counts),counts)
+# ids<- mapped_counts$ensembl_gene_id
+# 
+# if (any(grepl("^ENSG", strip_ensembl_version(ids)))) {
+#   library(biomaRt)
+#   ensembl_ids <- unique(strip_ensembl_version(ids))
+#   ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# 
+#   map <- getBM(
+#     attributes = c("ensembl_gene_id", "hgnc_symbol"),
+#     filters = "ensembl_gene_id",
+#     values = ensembl_ids,
+#     mart = ensembl
+#   )
+# 
+#   kable_head(map, 10, paste(": mapping preview"))
+# 
+# counts_mapped <- mapped_counts %>%
+#     left_join(map, by = "ensembl_gene_id") %>%
+#   dplyr::select( ensembl_gene_id,hgnc_symbol, everything())
+# 
+# 
+#   kable_head(counts_mapped[, 1:min(8, ncol(counts_mapped))], 5, paste(": mapped table preview"))
+# }
 ```
 
 ```{r}
-# save intermmediate objects
-saveRDS(list(counts = counts, 
-             meta = meta, 
-             mappings = counts_mapped[,1:2]), 
-        file = "data/d1_counts_and_meta.rds")
+# # save intermmediate objects
+# saveRDS(list(counts = counts, 
+#              meta = meta, 
+#              mappings = counts_mapped[,1:2]), 
+#         file = "data/d1_counts_and_meta.rds")
 ```
 
 ## Differential Expression Analysis

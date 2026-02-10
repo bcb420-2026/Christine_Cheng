@@ -31,6 +31,8 @@ library(SummarizedExperiment)
 
 ```
 
+## Data Exploration
+### Downloading the data set
 ```{r}
 dataset_se <- GEOquery::getRNASeqData("GSE166605")
 dataset_se
@@ -46,6 +48,26 @@ dataset_gse
 dataset_suppFiles <- GEOquery::getGEOSuppFiles("GSE166605", makeDirectory = FALSE, baseDir = "~/projects/Christine_Cheng/A1_files")
 dataset_suppFiles
 ```
+
+### Exploratory Statistics
+
+### Gene ID mapping
+
+### Data Trimming/Cleaning
+
+## Data Normalization
+
+## Differential Expression Analysis
+
+## Discussion
+1. Why is the dataset of interest to you?
+2. What are the control and test conditions of the dataset?
+3. How many samples in each of the conditions of your dataset?
+4. Were there expression values that were not unique for specific genes? How did you handle these?
+5. Were there expression values that could not be mapped to current HUGO symbols?
+6. Were there any outliers in your dataset? How were they handled in the originating paper? How 7. many outliers were removed?
+8. How did you handle replicates?
+9. What is the final coverage of your dataset?
 
 ## References
 ---

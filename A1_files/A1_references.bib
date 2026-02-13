@@ -100,7 +100,7 @@
 	author = {Olsson, Anton M. and Povoleri, Giovanni A. M. and Somma, Domenico and Ridley, Michael L. and Rizou, Tatiana and Lalnunhlimi, Sylvine and Macdonald, Lucy and Rajasekhar, Megha and Martinez-Nunez, Rocio T. and Kurowska-Stolarska, Mariola and Taams, Leonie S.},
 	month = apr,
 	year = {2022},
-	keywords = {Arthritis, Rheumatoid, CD4-Positive T-Lymphocytes, Humans, IL-10, immune regulation, innate immunity, Macrophages, microRNA, MicroRNAs, monocyte, Monocytes, Synovial Membrane},
+	keywords = {Humans, Arthritis, Rheumatoid, CD4-Positive T-Lymphocytes, IL-10, immune regulation, innate immunity, Macrophages, microRNA, MicroRNAs, monocyte, Monocytes, Synovial Membrane},
 	pages = {188--198},
 	file = {Full Text:C\:\\Users\\chris\\Zotero\\storage\\7TJR4REF\\Olsson et al. - 2022 - miR-155-overexpressing monocytes resemble HLAhighISG15+ synovial tissue macrophages from patients wi.pdf:application/pdf},
 }
@@ -119,7 +119,162 @@
 	author = {Robinson, Mark D. and Oshlack, Alicia},
 	month = mar,
 	year = {2010},
-	keywords = {Differential Expression Analysis, Ensembl Gene Identifier, Library Size, Read Count, Virtual Length},
+	keywords = {Differential Expression Analysis, Read Count, Ensembl Gene Identifier, Library Size, Virtual Length},
 	pages = {R25},
 	file = {Full Text PDF:C\:\\Users\\chris\\Zotero\\storage\\NFWN5257\\Robinson and Oshlack - 2010 - A scaling normalization method for differential expression analysis of RNA-seq data.pdf:application/pdf},
+}
+
+@article{love_moderated_2014,
+	title = {Moderated estimation of fold change and dispersion for {RNA}-seq data with {DESeq2}},
+	volume = {15},
+	issn = {1474-760X},
+	url = {https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8},
+	doi = {10.1186/s13059-014-0550-8},
+	abstract = {Abstract
+            
+              In comparative high-throughput sequencing assays, a fundamental task is the analysis of count data, such as read counts per gene in RNA-seq, for evidence of systematic changes across experimental conditions. Small replicate numbers, discreteness, large dynamic range and the presence of outliers require a suitable statistical approach. We present
+              DESeq2
+              , a method for differential analysis of count data, using shrinkage estimation for dispersions and fold changes to improve stability and interpretability of estimates. This enables a more quantitative analysis focused on the strength rather than the mere presence of differential expression. The
+              DESeq2
+              package is available at
+              http://www.bioconductor.org/packages/release/bioc/html/DESeq2.html
+              .},
+	language = {en},
+	number = {12},
+	urldate = {2026-02-13},
+	journal = {Genome Biology},
+	author = {Love, Michael I and Huber, Wolfgang and Anders, Simon},
+	month = dec,
+	year = {2014},
+	pages = {550},
+	file = {Full Text:C\:\\Users\\chris\\Zotero\\storage\\PG34KGAF\\Love et al. - 2014 - Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.pdf:application/pdf},
+}
+
+@article{dawadi_bench_2025,
+	title = {From bench to bytes: a practical guide to {RNA} sequencing data analysis},
+	volume = {16},
+	issn = {1664-8021},
+	shorttitle = {From bench to bytes},
+	url = {https://www.frontiersin.org/journals/genetics/articles/10.3389/fgene.2025.1697922/full},
+	doi = {10.3389/fgene.2025.1697922},
+	abstract = {RNA sequencing (RNA-Seq) is a high-throughput sequencing approach that enables comprehensive quantification of transcriptomes at a genome-wide scale. As a result, RNA-Seq has become a routine component of molecular biology research, and more researchers are now expected to analyze RNA-Seq data as part of their projects. However, unlike the largely experimental nature of benchwork, RNA-Seq analysis demands proficiency with computational and statistical approaches to manage technical issues and large data sizes. Although numerous manuals and reviews on RNA-Seq data analysis are available, many are either highly specialized, fragmented, or overly superficial, leaving beginners to use tools without understanding the underlying principles. To address this gap, we provide a decision-oriented guide tailored for molecular biologists encountering RNA-Seq analysis for the first time. This review is designed for readers to enable to decide which tools and statistical approaches to use based on their data, goals, and constraints. We aim to equip beginners with the knowledge required to perform RNA-Seq analysis rigorously and with confidence.},
+	language = {English},
+	urldate = {2026-02-13},
+	journal = {Frontiers in Genetics},
+	publisher = {Frontiers},
+	author = {Dawadi, Prabin and Pokharel, Bivek and Shrestha, Anita and Niraula, Dikshya and Naeem, Afifa and Miura, Sayaka and Roy, Mishal and Nepal, Saroj},
+	month = oct,
+	year = {2025},
+	keywords = {Beginner’s guide, bioinformatics, DESeq2, gene expression analysis, RNA-Seq},
+	file = {Full Text PDF:C\:\\Users\\chris\\Zotero\\storage\\DPZI2UPC\\Dawadi et al. - 2025 - From bench to bytes a practical guide to RNA sequencing data analysis.pdf:application/pdf},
+}
+
+@article{soneson_differential_2015,
+	title = {Differential analyses for {RNA}-seq: transcript-level estimates improve gene-level inferences},
+	volume = {4},
+	issn = {2046-1402},
+	shorttitle = {Differential analyses for {RNA}-seq},
+	doi = {10.12688/f1000research.7563.2},
+	abstract = {High-throughput sequencing of cDNA (RNA-seq) is used extensively to characterize the transcriptome of cells. Many transcriptomic studies aim at comparing either abundance levels or the transcriptome composition between given conditions, and as a first step, the sequencing reads must be used as the basis for abundance quantification of transcriptomic features of interest, such as genes or transcripts. Various quantification approaches have been proposed, ranging from simple counting of reads that overlap given genomic regions to more complex estimation of underlying transcript abundances. In this paper, we show that gene-level abundance estimates and statistical inference offer advantages over transcript-level analyses, in terms of performance and interpretability. We also illustrate that the presence of differential isoform usage can lead to inflated false discovery rates in differential gene expression analyses on simple count matrices but that this can be addressed by incorporating offsets derived from transcript-level abundance estimates. We also show that the problem is relatively minor in several real data sets. Finally, we provide an R package ( tximport) to help users integrate transcript-level abundance estimates from common quantification pipelines into count-based statistical inference engines.},
+	language = {eng},
+	journal = {F1000Research},
+	author = {Soneson, Charlotte and Love, Michael I. and Robinson, Mark D.},
+	year = {2015},
+	keywords = {gene expression, quantification, RNA-seq, transcriptomics},
+	pages = {1521},
+	file = {Full Text:C\:\\Users\\chris\\Zotero\\storage\\2EJT7K8I\\Soneson et al. - 2015 - Differential analyses for RNA-seq transcript-level estimates improve gene-level inferences.pdf:application/pdf},
+}
+
+@article{robinson_edger_2010,
+	title = {{edgeR}: a {Bioconductor} package for differential expression analysis of digital gene expression data},
+	volume = {26},
+	issn = {1367-4803},
+	shorttitle = {{edgeR}},
+	url = {https://pmc.ncbi.nlm.nih.gov/articles/PMC2796818/},
+	doi = {10.1093/bioinformatics/btp616},
+	abstract = {Summary: It is expected that emerging digital gene expression (DGE) technologies will overtake microarray technologies in the near future for many functional genomics applications. One of the fundamental data analysis tasks, especially for gene expression studies, involves determining whether there is evidence that counts for a transcript or exon are significantly different across experimental conditions. edgeR is a Bioconductor software package for examining differential expression of replicated count data. An overdispersed Poisson model is used to account for both biological and technical variability. Empirical Bayes methods are used to moderate the degree of overdispersion across transcripts, improving the reliability of inference. The methodology can be used even with the most minimal levels of replication, provided at least one phenotype or experimental condition is replicated. The software may have other applications beyond sequencing data, such as proteome peptide count data., Availability: The package is freely available under the LGPL licence from the Bioconductor web site (http://bioconductor.org)., Contact: mrobinson@wehi.edu.au},
+	number = {1},
+	urldate = {2026-02-13},
+	journal = {Bioinformatics},
+	author = {Robinson, Mark D. and McCarthy, Davis J. and Smyth, Gordon K.},
+	month = jan,
+	year = {2010},
+	pages = {139--140},
+	file = {Full Text PDF:C\:\\Users\\chris\\Zotero\\storage\\57YIACU5\\Robinson et al. - 2010 - edgeR a Bioconductor package for differential expression analysis of digital gene expression data.pdf:application/pdf},
+}
+
+@misc{chen_reads_2016,
+	title = {From reads to genes to pathways: differential expression analysis of {RNA}-{Seq} experiments using {Rsubread} and the {edgeR} quasi-likelihood pipeline},
+	copyright = {https://creativecommons.org/licenses/by/4.0/},
+	shorttitle = {From reads to genes to pathways},
+	url = {https://f1000research.com/articles/5-1438},
+	doi = {10.12688/f1000research.8987.2},
+	abstract = {In recent years, RNA sequencing (RNA-seq) has become a very widely used technology for profiling gene expression. One of the most common aims of RNA-seq profiling is to identify genes or molecular pathways that are differentially expressed (DE) between two or more biological conditions. This article demonstrates a computational workflow for the detection of DE genes and pathways from RNA-seq data by providing a complete analysis of an RNA-seq experiment profiling epithelial cell subsets in the mouse mammary gland. The workflow uses R software packages from the open-source Bioconductor project and covers all steps of the analysis pipeline, including alignment of read sequences, data exploration, differential expression analysis, visualization and pathway analysis. Read alignment and count quantification is conducted using the Rsubread package and the statistical analyses are performed using the edgeR package. The differential expression analysis uses the quasi-likelihood functionality of edgeR.},
+	language = {en},
+	urldate = {2026-02-13},
+	publisher = {F1000Research},
+	author = {Chen, Yunshun and Lun, Aaron T. L. and Smyth, Gordon K.},
+	month = aug,
+	year = {2016},
+	keywords = {gene expression, molecular pathways, R software, RNA sequencing},
+	file = {Full Text PDF:C\:\\Users\\chris\\Zotero\\storage\\YFCCZ4VE\\Chen et al. - 2016 - From reads to genes to pathways differential expression analysis of RNA-Seq experiments using Rsubr.pdf:application/pdf},
+}
+
+@book{wickham_dplyr_2023,
+	title = {dplyr: {A} {Grammar} of {Data} {Manipulation}},
+	url = {https://CRAN.R-project.org/package=dplyr},
+	doi = {10.32614/CRAN.package.dplyr},
+	author = {Wickham, Hadley and François, Romain and Henry, Lionel and Müller, Kirill and Vaughan, Davis},
+	year = {2023},
+}
+
+@book{wickham_readr_2025,
+	title = {readr: {Read} {Rectangular} {Text} {Data}},
+	url = {https://CRAN.R-project.org/package=readr},
+	doi = {10.32614/CRAN.package.readr},
+	author = {Wickham, Hadley and Hester, Jim and Bryan, Jennifer},
+	year = {2025},
+}
+
+@article{chen_edger_2025,
+	title = {{edgeR} v4: powerful differential analysis of sequencing data with expanded functionality and improved support for small counts and larger datasets},
+	volume = {53},
+	doi = {10.1093/nar/gkaf018},
+	number = {2},
+	journal = {Nucleic Acids Research},
+	author = {Chen, Yunshun and Chen, Lizhong and Lun, Aaron T. L. and Baldoni, Pedro and Smyth, Gordon K.},
+	year = {2025},
+	pages = {gkaf018},
+}
+
+@book{muller_tibble_2025,
+	title = {tibble: {Simple} {Data} {Frames}},
+	url = {https://tibble.tidyverse.org/},
+	author = {Müller, Kirill and Wickham, Hadley},
+	year = {2025},
+}
+
+@book{wickham_ggplot2_2016,
+	title = {ggplot2: {Elegant} {Graphics} for {Data} {Analysis}},
+	isbn = {978-3-319-24277-4},
+	url = {https://ggplot2.tidyverse.org},
+	publisher = {Springer-Verlag New York},
+	author = {Wickham, Hadley},
+	year = {2016},
+}
+
+@article{gu_complex_2016,
+	title = {Complex heatmaps reveal patterns and correlations in multidimensional genomic data},
+	doi = {10.1093/bioinformatics/btw313},
+	journal = {Bioinformatics},
+	author = {Gu, Zuguang and Eils, Roland and Schlesner, Matthias},
+	year = {2016},
+}
+
+@article{gu_complex_2022,
+	title = {Complex {Heatmap} {Visualization}},
+	doi = {10.1002/imt2.43},
+	journal = {iMeta},
+	author = {Gu, Zuguang},
+	year = {2022},
 }

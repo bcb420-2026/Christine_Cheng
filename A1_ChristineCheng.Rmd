@@ -1,21 +1,23 @@
 ---
 title: "A1 - Dataset selection, cleaning, normalization, and differential gene expression"
 author: "Christine En-Tse Cheng"
-date: "`r Sys.Date()"
+date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true
     toc_depth: 3
     toc_float: true
     code_folding: hide
-knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
 bibliography: A1_files/A1_references.bib    # TODO: insert the citations/bibliography file
 link-citations: true            # this is for the citations/bibliography 
 nocite: '@*'
 ---
 
 ```{r setup, include=FALSE}
+# TODO: put back in yaml header above bibliography
+# knit: (function(inputFile, encoding) {
+#   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
+
 knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE,
                       message = FALSE,
@@ -42,13 +44,11 @@ kable_head <- kable_head_helper()
 
 TODO: introduce the dataset/paper, maybe briefly talk about how/why the dataset was chosen
 
-This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. TODO: The workflow follows best practices for RNA-seq analysis as outlined by Dawadi et al. (2025) [@dawadi_bench_2025]
+This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. TODO: The workflow follows best practices for RNA-seq analysis as outlined by (@dawadi_bench_2025)
 
 ### 1.1 Dataset Selection {#q1}
 
-TODO: brief description
-The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605) from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates TODO: [transcriptional responses of human CD14+ monocytes under experimentally defined conditions involving differential treatment exposure]. The dataset was chosen because TODO
-The selected dataset is GSE166605 from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates the transcriptional responses of human CD14+ monocytes. Specifically, it analyzes the effect of miR-155 overexpression compared to a negative control.
+TODO: brief description The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605) from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates TODO: [transcriptional responses of human CD14+ monocytes under experimentally defined conditions involving differential treatment exposure]. The dataset was chosen because TODO The selected dataset is GSE166605 from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates the transcriptional responses of human CD14+ monocytes. Specifically, it analyzes the effect of miR-155 overexpression compared to a negative control.
 
 This dataset is of interest because miR-155 is a critical regulator of immune function and inflammation. Understanding its downstream targets in monocytes can reveal mechanisms of immune activation.
 
@@ -60,8 +60,7 @@ A detailed account of the dataset discovery process is documented separately [he
 
 ####  {#q2}
 
--   TODO: control and test conditions of dataset
-Organism: Homo sapiens
+-   TODO: control and test conditions of dataset Organism: Homo sapiens
 
 Tissue: CD14+ Monocytes
 
@@ -93,15 +92,30 @@ if (!require("dplyr", quietly = TRUE))
 if (!require("knitr", quietly = TRUE))
   install.packages("knitr")
 
+if (!require("edgeR", quietly = TRUE))
+  BiocManager::install("edgeR")
+
 if (!require("biomaRt", quietly = TRUE))
   BiocManager::install("biomaRt")
+
+if (!require("tibble", quietly = TRUE))
+  install.packages("tibble")
+
+if (!require("ggplot2", quietly = TRUE))
+  install.packages("ggplot2")
+
+if (!require("ComplexHeatmap", quietly = TRUE))
+  BiocManager::install("ComplexHeatmap")
 
 library(GEOquery)
 library(readr)
 library(dplyr)
 library(knitr)
+library(edgeR)
 library(biomaRt)
-library(readr)
+library(tibble)
+library(ggplot2)
+library(ComplexHeatmap)
 ```
 
 ### 2.1 Obtaining the Data
@@ -135,666 +149,447 @@ raw_counts <- readr::read_tsv(counts_file, show_col_types = FALSE)
 kable_head(raw_counts, caption = "Preview of Raw Count Data from GEO") # TODO:make sure it renders decently/pretty
 ```
 
-The raw counts file was additionally processed to remove gene IDs and gene names (as they will be manually mapped later on in the workflow TODO: check if paper describes how they annotated the gene names > then decide if I should keep it or not), such that only raw expression values remained: TODO: display `counts`
+```{r}
+# sanity check: gene IDs are Ensembl IDs
+# all(grepl("^ENSG", raw_counts[[1]]))
 
-TODO: Add comments explaining:
-- Why raw counts are required for edgeR
-- Why integers are necessary (NB distribution assumption)(?)
-
-```{r pre_processing}
-# processing count file to only contain expression values (remove GeneID and Gene Name columns)
-counts <- raw_counts %>%
-  dplyr::select(starts_with("D")) %>% # based on GEO accession page, all sample names start with 'D'
-  as.data.frame()
-
-rownames(counts) <- raw_counts$GeneID
-
-counts <- as.matrix(counts) # converted to matrix for compatibility with DE analysis packages
-
-# check that all values in the counts matrix are *mathematically* integers (even if the storage type isn't) before converting storage type of count values to integers
-stopifnot(all(counts %% 1 == 0))
-storage.mode(counts) <- "integer"
-
-counts # TODO: display `counts`
-```
-
-TODO:remove??? Parsing count data to make metadata for design matrix.
-
-```{r metadata}
-# # We parse the column names to determine groups.
-# # Expected format based on filename: D1_Neg_C_... or similar.
-# sample_names <- colnames(counts_matrix)
-# 
-# # Regex logic: Look for "Neg" for control, "miR" for treatment
-# conditions <- ifelse(grepl("Neg", sample_names, ignore.case = TRUE), "Control", "miR155")
-# 
-# meta_df <- data.frame(
-#   Sample = sample_names,
-#   Condition = factor(conditions, levels = c("Control", "miR155"))
-# )
-
-# Sample name format: D# CD14 control/treatment_name
-samples <- colnames(counts)[1:ncol(counts)]
-cell_line  <- unlist(lapply(samples,FUN =
-                             function(x){unlist(strsplit(x,split = " "))[2]}))       
-treatment <- unlist(lapply(samples,FUN = 
-                             function(x){unlist(strsplit(x,split = " "))[3]}))     
-meta_df <- data.frame(samples, cell_line, treatment)
-
-kable_head(meta_df, caption = "Sample Metadata Preview")
-```
-
-### 2.2 Gene ID mapping
-
-```{r id_mapping}
 # helper function to remove Ensembl IDs' version numbers:
 strip_ensembl_version <- function(x) sub("\\..*$", "", x)
 
-counts <- data.frame(ensembl_gene_id = rownames(counts),
-                            counts)
+# Build a counts matrix (genes × samples)
+counts <- raw_counts %>%
+  dplyr::select(-`Gene name`) %>%
+  dplyr::rename(ensembl_gene_id = GeneID) %>% # rename to be more descriptive and for easier ID mapping downstream
+  as.data.frame()
 
 counts$ensembl_gene_id <- strip_ensembl_version(counts$ensembl_gene_id)
-# TODO: check for duplicate ensembl IDs now that version numbers have been stripped
 
 ensembl <- biomaRt::useMart("ensembl", dataset = "hsapiens_gene_ensembl") # using latest Human Genes mart
-map <- biomaRt::getBM(
-  #attributes should include both ensembl gene ID and hgnc symbol to ensure we can map back to the ensembl gene in the original data from hgnc at any point in our analysis 
+ids_map <- biomaRt::getBM(
   attributes = c("ensembl_gene_id", "hgnc_symbol"),
   filters = "ensembl_gene_id",
   values = counts$ensembl_gene_id,
   mart = ensembl
 )
 
-# TODO: remove?
-# kable_head(map, 10, paste(": mapping preview"))
-
-counts_mapped <- counts %>%
-  dplyr::left_join(map, by = "ensembl_gene_id") %>%
+mapped_counts <- counts %>%
+  dplyr::left_join(ids_map, by = "ensembl_gene_id") %>%
   dplyr::select(ensembl_gene_id,hgnc_symbol, everything())
-
-kable_head(counts_mapped[, 1:min(8, ncol(counts_mapped))], caption = "Mapped Counts Preview")
-
-# Drop rows with empty/NA HGNC symbols
-# TODO: fill in number of dropped rows with missing HGNC symbols {#q5}
-counts_mapped[!(is.na(counts_mapped$hgnc_symbol) | counts_mapped$hgnc_symbol == ""), ]
-
-counts_mapped <- counts_mapped[!(is.na(counts_mapped$hgnc_symbol) | counts_mapped$hgnc_symbol == ""), ]
-
-  # Aggregate duplicates: for HGNC symbols appearing more than once, sum counts across duplicates (common, simple approach for gene‑level DGE). State the alternative (choose the row with highest average count) and why summation is acceptable for gene‑level DGE. Then set rownames to unique HGNC. 
-  # Resolution: If multiple rows map to the same HUGO symbol (common with splice variants or probes), we sum the counts. This preserves the total transcriptional output for that gene.
-#   # AGGREGATION: Sum counts for duplicate HGNC symbols
-# # This handles the "Many-to-One" mapping problem
-# final_counts <- mapped_data %>%
-#   dplyr::select(-id) %>% # Remove original ID
-#   dplyr::group_by(hgnc_symbol) %>%
-#   dplyr::summarise(across(everything(), sum)) %>%
-#   as.data.frame()
-
-  # In your text, explain how you handled: unmapped IDs, multi‑mapping, duplicate symbols — these directly answer Q4–Q5. For biomaRt/Ensembl usage notes, reference the vignette.
-
-# # Set rownames
-# rownames(final_counts) <- final_counts$hgnc_symbol
-# final_counts$hgnc_symbol <- NULL
-# final_matrix <- as.matrix(final_counts)
-# 
-# cat("Original genes:", nrow(counts_matrix), "\n")
-# cat("Mapped & Unique HUGO genes:", nrow(final_matrix), "\n")
 ```
 
-### 2.3 Exploratory Statistics {#q3}
-
-At first glance, the dataset contains TODO
-
--   evaluate sequencing depth and library size comparisons across samples??
-
 ```{r}
-dim(counts)
-summary(colSums(counts))
-
-# RNA-seq counts are depth dependent.
-# Library sizes and zero‑count genes:
-lib_sizes <- colSums(counts)
-summary(lib_sizes)
-# TODO: Add:
-  # Boxplot of library sizes: boxplot of log2(lib_sizes)
-  # histogram of per‑gene zero counts
-  # Barplot with sample labels
-
-# TODO: Quick MDS (after we build a DGEList in next phase) colored by treatment and by donor (paired design sanity check). We’ll come back to this once normalization factors are in (Phase 5).
-```
-TODO: Interpret:
-- Are depths comparable?
-- Any extreme sample?
-
-```{r}
-# # initial logCPM
-# dge <- edgeR::DGEList(counts)
-# logcpm <- edgeR::cpm(dge, log = TRUE, prior.count = 1)
-# # TODO: Plot: Density plot per sample
-```
-TODO: Explain:
-- Log transformation stabilizes variance for visualization (Dawadi et al., 2025).
-
-### 2.4 Data Trimming/Cleaning
-
-```{r}
-# design <- model.matrix(~ treatment, data = meta)
+# # found  duplicate Ensembl IDs
+# duplicates <- mapped_counts %>%
+#   dplyr::group_by(ensembl_gene_id) %>%
+#   dplyr::filter(n() > 1) %>%
+#   dplyr::arrange(ensembl_gene_id)
 # 
-# keep <- edgeR::filterByExpr(dge, design)
-# dge <- dge[keep, , keep.lib.sizes = FALSE]
-```
-TODO:
-Explain clearly:
-- Why low-count genes are removed
-- How filtering improves dispersion estimation
-- Cite Dawadi paper discussion on low-count instability
-
-Report:
-- Number of genes before filtering
-- After filtering
-
-####  {#q6}
-
-TODO: filtering low counts
-I filtered genes with low expression to improve statistical power and reduce noise.
-
-```{r}
-# dge <- edgeR::DGEList(counts = final_matrix, group = metadata$Condition)
+# View(duplicates)
 # 
-# # Filter: Keep genes with > 1 CPM in at least 2 samples (smallest group size)
-# keep <- edgeR::filterByExpr(dge, group = metadata$Condition)
-# dge <- dge[keep, , keep.lib.sizes = FALSE]
+# duplicate_summary <- mapped_counts %>%
+#   dplyr::count(ensembl_gene_id) %>%
+#   dplyr::filter(n > 1)
 # 
-# cat("Genes remaining after filtering:", nrow(dge$counts))
-```
-
-####  {#q7}
-
-```{r}
-# # QC, filtering and identifier mapping
-# # This chapter performs shared QC steps used by both limma-voom and edgeR and DEseq2.
+# View(duplicate_summary)
 # 
-# obj <- readRDS("data/d1_counts_and_meta.rds")
-# counts <- obj$counts
-# meta <- obj$meta
-# mappings <- obj$mappings
+# id_conflicts <- mapped_counts %>%
+#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
+#   dplyr::filter(n() > 1)
 # 
-# # Create a DGEList (edgeR data container)
-# dge <- edgeR::DGEList(counts = counts)
+# View(id_conflicts)
 # 
-# # Attach metadata
-# # (not required, but helpful)
-# dge$samples <- cbind(dge$samples, meta)
-# 
-# dge$samples
-# 
-# # filter lowly expressed genes
-# design <- model.matrix(~ 0 +  treatment+ cellline, data = meta)
-# 
-# keep <- edgeR::filterByExpr(dge, design)
-# dge_f <- dge[keep, , keep.lib.sizes = FALSE]
-# 
-# dim(dge)
-```
-
-## 3 Data Normalization
-Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization (@robinson_scaling_2010) on the cleaned count data. 3.1`
-
-### 3.1 Normalization with TMM
-
-TODO: I used the TMM (Trimmed Mean of M-values) method via `edgeR`. TMM is preferred for RNA-seq as it accounts for compositional differences between libraries (Dawadi et al., 2025).
-
-```{r}
-# # TMM normalization
-# dge_f <- edgeR::calcNormFactors(dge_f, method = "TMM")
-# # dge_f$samples
-# # TODO: Include table of normalization factors.
-```
-TODO: explain: Why TMM?
-- Adjusts library composition bias
-- Trims extreme genes
-- Good when majority of genes are not DE
-- Recommended for between-sample comparison
-- Consistent with Dawadi et al.
-
-```{r}
-# # exploratory MDS plot > to identify outliers (?)
-# current_colors <- RColorBrewer::brewer.pal(n = length(unique(meta$treatment)), "Set2")
-# names(current_colors) <- levels(factor(meta$treatment))
-# 
-# plotMDS(dge_f,
-#   labels = meta$treatment,
-#   col = current_colors[meta$treatment],
-#   main = "MDS plot (colored by treatment)"
-# ) # TODO: (if not already) color by condition
-
-# legend("topright",
-#   legend = names(current_colors),
-#   col = current_colors,
-#   pch = 16,
-#   bty = "n"
+# missing_gene <- setdiff(
+#   unique(duplicate_summary$ensembl_gene_id), 
+#   unique(id_conflicts$ensembl_gene_id)
 # )
 # 
-# # " " " - coloured by cell line
-# current_colors_cellline <- RColorBrewer::brewer.pal(n = length(unique(meta$cellline)), "Set1")
-# names(current_colors_cellline) <- levels(factor(meta$cellline))
+# duplicates[duplicates$ensembl_gene_id == missing_gene, ] # same stripped Ensembl ID mapped to 2 different HGNC symbols!
 # 
-# plotMDS(dge_f,
-#   labels = meta$cellline,
-#   col = current_colors_cellline[meta$cellline],
-#   main = "MDS plot (colored by cellline)"
-# )
-# legend("topright",
-#   legend = names(current_colors_cellline),
-#   col = current_colors_cellline,
-#   pch = 16,
-#   bty = "n"
-# )
-```
-TODO:
-Interpret:
-
-Do replicates cluster?
-
-Does treatment separate?
-
-Any outliers?
-
-If outlier:
-
-Check paper
-
-Justify removal
-
-Remove explicitly and document
-
-This answers:
-
-Outlier question
-
-Replicate handling
-
-Model design justification
-
-```{r}
-# # Calculate CPM (Counts Per Million) for visualizatio
-# lcpm <- edgeR::cpm(dge_f, log = TRUE, prior.count = 1)
-# summary(as.vector(lcpm))
+# raw_counts[raw_counts$GeneID == missing_gene, ] # raw counts doesn't have duplicated `missing_gene`!
+# 
+# # after running just:
+# # mapped_counts <- counts %>%
+# # +   dplyr::left_join(ids_map, by = "ensembl_gene_id")
+# # mapped_counts already has the duplicated `missing_gene` -> BioMart mapping must be the issue
+# ids_map[ids_map$ensembl_gene_id == missing_gene, ] # confirms that BioMart mapped two different HGNC symbols to the same Ensembl ID
 ```
 
 ```{r}
-# # Visualization of normalization
-# par(mfrow = c(1, 2))
-# # Pre-normalization (using raw log CPM for comparison)
-# raw_cpm <- edgeR::cpm(final_matrix, log = TRUE)
-# boxplot(raw_cpm, las = 2, main = "Pre-Normalization (Log CPM)", 
-#         col = as.numeric(metadata$Condition))
-# 
-# # Post-normalization
-# boxplot(cpm_log, las = 2, main = "Post-TMM Normalization", 
-#         col = as.numeric(metadata$Condition))
-# legend("topright", legend = levels(metadata$Condition), fill = 1:2, cex = 0.7)
-```
-TODO: Interpretation: The boxplots verify that TMM normalization has centered the expression distributions, making samples comparable for differential analysis.
+## FIX:
+# 1. Collapse the map first so each Ensembl ID appears exactly once
+ids_map_unique <- ids_map %>%
+  dplyr::group_by(ensembl_gene_id) %>%
+  dplyr::summarize(hgnc_symbol = paste(unique(hgnc_symbol), collapse = ", "))
 
-```{r}
-# saveRDS(list(dge_f = dge_f, 
-#              meta = meta, 
-#              design = design, 
-#              lcpm = lcpm, 
-#              mappings = mappings),
-#         file = "data/d1_qc_objects.rds")
-```
-
-### 3.2 Sample Validation (MDS/PCA)
-
-
-
-```{r}
-# library(dplyr)
-# library(stringr)
-# 
-# # ---- 1) Set these to your actual column names ----
-# # Example: raw_counts has columns "ensembl_id" and "gene_symbol"
-# #          counts_mapped has columns "gene_id" and "gene_name"
-# id_col_raw    <- "GeneID"
-# name_col_raw  <- "Gene name"
-# id_col_map    <- "ensembl_gene_id"
-# name_col_map  <- "hgnc_symbol"
-# 
-# # ---- 2) Keep only the two columns and standardize names ----
-# raw_pairs <- raw_counts %>%
-#   transmute(
-#     gene_id   = .data[[id_col_raw]],
-#     gene_name = .data[[name_col_raw]]
-#   )
-# 
-# map_pairs <- counts_mapped %>%
-#   transmute(
-#     gene_id   = .data[[id_col_map]],
-#     gene_name = .data[[name_col_map]]
-#   )
-# 
-# # ---- (Optional but helpful) 3) Normalize text to avoid trivial mismatches ----
-# normalize <- function(x) {
-#   x %>%
-#     as.character() %>%
-#     str_trim() %>%
-#     str_squish()
-# }
-# raw_pairs <- raw_pairs %>%
-#   mutate(across(everything(), normalize))
-# map_pairs <- map_pairs %>%
-#   mutate(across(everything(), normalize))
-# 
-# # If case-insensitive matching is desired for names (IDs usually case-sensitive):
-# # raw_pairs <- raw_pairs %>% mutate(gene_name = str_to_upper(gene_name))
-# # map_pairs <- map_pairs %>% mutate(gene_name = str_to_upper(gene_name))
-# 
-# # ---- 4) (Optional) Deduplicate pairs within each table ----
-# raw_pairs_distinct <- distinct(raw_pairs)
-# map_pairs_distinct <- distinct(map_pairs)
-# 
-# # ---- 5) Intersection: pairs present in both ----
-# common_pairs <- inner_join(
-#   raw_pairs_distinct,
-#   map_pairs_distinct,
-#   by = c("gene_id", "gene_name")
-# )
-# 
-# # ---- 6) Pairs unique to each table (useful diagnostics) ----
-# only_in_raw <- anti_join(raw_pairs_distinct, map_pairs_distinct,
-#                          by = c("gene_id", "gene_name"))
-# only_in_map <- anti_join(map_pairs_distinct, raw_pairs_distinct,
-#                          by = c("gene_id", "gene_name"))
-# 
-# # ---- 7) Quick counts ----
-# n_common    <- nrow(common_pairs)
-# n_only_raw  <- nrow(only_in_raw)
-# n_only_map  <- nrow(only_in_map)
-# 
-# list(
-#   common_pairs = common_pairs,
-#   only_in_raw  = only_in_raw,
-#   only_in_map  = only_in_map,
-#   summary = tibble(
-#     common = n_common,
-#     only_in_raw = n_only_raw,
-#     only_in_map = n_only_map
-#   )
-# )
-
-
-# # Set actual column names as above
-# id_raw   <- raw_counts[["GeneID"]]
-# name_raw <- raw_counts[["Gene name"]]
-# id_map   <- counts_mapped[["ensembl_gene_id"]]
-# name_map <- counts_mapped[["hgnc_symbol"]]
-# 
-# normalize <- function(x) trimws(gsub("\\s+", " ", as.character(x)))
-# 
-# key_raw <- paste(normalize(id_raw), normalize(name_raw), sep = "||")
-# key_map <- paste(normalize(id_map), normalize(name_map), sep = "||")
-# 
-# common_keys <- intersect(unique(key_raw), unique(key_map))
-# 
-# # Turn back into a data.frame of pairs
-# if (length(common_keys)) {
-#   split_keys <- strsplit(common_keys, "\\|\\|", fixed = FALSE)
-#   common_pairs_base <- data.frame(
-#     gene_id   = vapply(split_keys, `[`, character(1), 1),
-#     gene_name = vapply(split_keys, `[`, character(1), 2),
-#     stringsAsFactors = FALSE
-#   )
-# } else {
-#   common_pairs_base <- data.frame(gene_id = character(0), gene_name = character(0))
-# }
-# 
-# common_pairs_base
-
-
-# library(dplyr)
-# 
-# # Extract and rename columns to match
-# df1 <- raw_counts %>%
-#   dplyr::select(id1 = `GeneID`, name1 = `Gene name`) %>%
-#   distinct()
-# 
-# df2 <- counts_mapped %>%
-#   dplyr::select(id2 = ensembl_gene_id, name2 = hgnc_symbol) %>%
-#   distinct()
-# 
-# # This will return only the pairs present in both
-# matching_pairs <- inner_join(df1, df2, by = c("id1" = "id2", "name1" = "name2"))
-# 
-# # To see how many matches you found:
-# nrow(matching_pairs)
+# 2. Join with the collapsed map
+mapped_counts_fixed <- counts %>%
+  dplyr::left_join(ids_map_unique, by = "ensembl_gene_id")
 ```
 
 ```{r}
-# # save intermmediate objects
-# saveRDS(list(counts = counts, 
-#              meta = meta, 
-#              mappings = counts_mapped[,1:2]), 
-#         file = "data/d1_counts_and_meta.rds")
+# duplicates1 <- mapped_counts_fixed %>%
+#   dplyr::group_by(ensembl_gene_id) %>%
+#   dplyr::filter(n() > 1) %>%
+#   dplyr::arrange(ensembl_gene_id)
+# 
+# View(duplicates1)
+# 
+# duplicate_summary1 <- mapped_counts_fixed %>%
+#   dplyr::count(ensembl_gene_id) %>%
+#   dplyr::filter(n > 1)
+# 
+# View(duplicate_summary1)
+# 
+# id_conflicts1 <- mapped_counts_fixed %>%
+#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
+#   dplyr::filter(n() > 1)
+# 
+# View(id_conflicts1)
+# 
+# nrow(duplicates1) == nrow(duplicate_summary1)*2
+# nrow(duplicate_summary1)*2 == nrow(id_conflicts1)
+# #fixed :)
+```
+
+```{r}
+consistency_check <- mapped_counts_fixed %>%
+  dplyr::group_by(ensembl_gene_id) %>%
+  dplyr::summarize(
+    row_count = n(),
+    unique_symbols = n_distinct(hgnc_symbol),
+    symbols_found = paste(unique(hgnc_symbol), collapse = "; ")
+  ) %>%
+  dplyr::filter(row_count > 1) %>% # Only look at the duplicates
+  dplyr::filter(unique_symbols > 1) # Check if any duplicate Ensembl ID has more than 1 unique symbol
+
+cat("Any more Ensembl IDs-HGNC symbols one-to-many mappings? ", nrow(consistency_check) > 0) 
+```
+
+```{r}
+# Summing up expression values for duplicate Ensembl ID rows
+final_counts <- mapped_counts_fixed %>%
+  dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
+  dplyr::summarise(dplyr::across(tidyr::starts_with("D"), sum)) %>% # only sum sample columns (labels start /w 'D')
+  dplyr::ungroup()
+
+# # sanity check:
+# length(unique(final_counts$ensembl_gene_id)) == nrow(final_counts)
+```
+
+```{r}
+# BUT
+hgnc_duplication <- length(unique(final_counts$hgnc_symbol)) == nrow(final_counts) # duplicate HGNC symbols still exist!
+cat("All unique HGNC symbols? ", hgnc_duplication)
+```
+
+Since I plan on conducting differential expression analysis, I will not remove the rows with duplicated HGNC symbol as that may end up merging - Readthroughs: Two genes are transcribed together.
+
+-   Paralogs/Homologs: Ensembl assigns distinct IDs to very similar regions (like ENSG...1 and ENSG...2), but the HGNC nomenclature considers them the same gene.
+
+-   Pseudo-genes: A functional gene and its "broken" version might share a symbol but have separate Ensembl entries. [TODO: source]() which can result in not specific results. Instead the unique Ensembl IDs will be kept as a stable reference while the HGNC symbols (including duplicates) are kept as annotations.
+
+```{r}
+rownames(final_counts) <- final_counts$ensembl_gene_id # added rownames (succesfully)
+# BUT, no matter which method, I can't get the rownames to stay:
+# final_counts$ensembl_gene_id <- NULL
+# final_counts <- dplyr::select(final_counts, !(ensembl_gene_id))
+# final_counts <- final_counts %>% dplyr::select( -ensembl_gene_id)
+# SOLUTION:
+final_counts <- mapped_counts_fixed %>%
+  dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
+  dplyr::summarise(dplyr::across(tidyr::starts_with("D"), sum)) %>% # results in tibble, that loses (temporary attached) rownames once another operation is applied on it
+  dplyr::ungroup() %>%
+  as.data.frame() # need to convert to standard data.frame here
+```
+
+```{r counts_objs}
+# create objects for downstream DE analysis
+count_mappings <- final_counts[, 1:2]
+
+rownames(final_counts) <- final_counts$ensembl_gene_id
+final_counts$ensembl_gene_id <- NULL
+final_counts$hgnc_symbol <- NULL
+
+# TODO: is this necessary???
+# final_counts1 <- as.matrix(final_counts)
+# storage.mode(final_counts1[, 2:ncol(final_counts1)]) <- "integer"
+```
+
+```{r metadata}
+# Sample name format: D# CD14 control/treatment_name
+samples <- colnames(final_counts)
+cell_line <- unlist(lapply(samples,
+                          FUN = function(x){unlist(strsplit(x,split = " "))[2]}))       
+
+# TODO: remove
+# treatment <- unlist(lapply(samples,FUN = 
+#                              function(x){unlist(strsplit(x,split = " "))[3]}))     
+
+is_control <- ifelse(grepl("Neg", samples, ignore.case = TRUE), "Control", "miR155")
+condition = factor(is_control, levels = c("Control", "miR155"))
+
+meta_df <- data.frame(samples, cell_line, condition)
+
+kable_head(meta_df, n = 10, caption = "Sample Metadata")
+```
+
+```{r save_data}
+# TODO: do i need?
+# saveRDS(list(counts = final_counts,
+#              meta = meta_df,
+#              mappings = count_mappings),
+#         file = "A1_files/counts_and_metadata.rds")
+```
+
+```{r}
+# based on edgeR documentation, negative and NA count values are not permitted -> need to ensure it meets requirements
+edger_precon <- all(sapply(final_counts, function(x) all(!is.na(x) & x >= 0 & x %% 1 == 0)))
+cat("Final count matrix meets input preconditions? ", edger_precon)
+
+dge <- edgeR::DGEList(final_counts)
+dge$samples <- cbind(dge$samples, meta_df)
+```
+
+```{r filtering}
+# Filter lowly expressed genes
+# Purpose: Removing low-count genes improves statistical power by reducing the burden of multiple testing and removing "noisy" data that cannot reach significance anyway. 
+design <- model.matrix(~ 0 + condition, data = meta_df)
+# only creating the design contrast /w condition since all 10 samples were from the same cell line, thus control for batch effects and related is not necessary.
+
+keep <- edgeR::filterByExpr(dge, design)
+dge_filtered <- dge[keep, , keep.lib.sizes = FALSE]
+
+filtered_percent <- round((1 - (nrow(dge_filtered) / nrow(dge))) * 100, digits = 2)
+cat("Approximately ", filtered_percent, "% of genes were determined by the design matrix to be lowly expressed and thus removed for downstream analyses.")
+
+# create a subset of the gene mappings
+count_mappings_filtered <- count_mappings[count_mappings$ensembl_gene_id %in% rownames(dge_filtered$counts), ] 
+```
+
+```{r normalization}
+dge_filtered <- edgeR::calcNormFactors(dge_filtered, method = "TMM")
+dge_filtered$samples
+```
+
+```{r MDS_plot}
+current_colors <- RColorBrewer::brewer.pal(n = length(unique(meta_df$condition)), "Set2")
+names(current_colors) <- levels(factor(meta_df$condition))
+
+plotMDS(dge_filtered,
+  labels = meta_df$condition,
+  col = current_colors[meta_df$condition],
+  main = "MDS plot (colored by condition)"
+)
+legend("topright",
+  legend = names(current_colors),
+  col = current_colors,
+  pch = 16,
+  bty = "n"
+)
+# TODO: add caption
+```
+
+```{r log_CPM}
+lcpm <- edgeR::cpm(dge_filtered, log = TRUE, prior.count = 1)
+summary(as.vector(lcpm))
 ```
 
 ## 4 Differential Expression Analysis
 
-### 4.1 DE Analysis with EdgeR
+I will now conduct differential expression analysis using the recommended quasi-likelihood pipeline from `edgeR` (@chen_reads_2016).
 
-### 4.2 Visualizing Differentially Expressed Genes (DEGs)
-- MA
-- Volcano
-- Heatmap
+```{r dge_setup}
+cat("Data design condition variable names: ", colnames(design))
 
-```{r}
-# obj <- readRDS("data/d1_qc_objects.rds")
-# dge_f <- obj$dge_f
-# meta <- obj$meta
-# mappings <- obj$mappings
-# 
-# design <- obj$design
-# 
-# # Contrasts
-# contr <- makeContrasts(
-#   `3CTG_vs_NT` = treatment3CTG - treatmentNT,
-#   `20CTG_vs_NT` = treatment20CTG - treatmentNT,
-#   `20CTG_vs_3CTG` = treatment20CTG - treatment3CTG,
-#   levels = design
-# )
-# 
-# # Estimate dispersion and fit QL model
-# edge <- edgeR::estimateDisp(dge_f, design)
-# fit <- edgeR::glmQLFit(edge, design)
-# 
-# plotBCV(edge)
-# 
-# qlf_3_vs_nt <- edgeR::glmQLFTest(fit, contrast = contr[, "3CTG_vs_NT"])
-# qlf_20_vs_nt <- edgeR::glmQLFTest(fit, contrast = contr[, "20CTG_vs_NT"])
-# 
-# edgeR::topTags(qlf_20_vs_nt)
-# 
-# qlf_20_vs_3 <- edgeR::glmQLFTest(fit, contrast = contr[, "20CTG_vs_3CTG"])
-# 
-# edgeR::topTags(qlf_20_vs_3)
-# 
-# tab_3_vs_nt <- edgeR::topTags(qlf_3_vs_nt, n = Inf)$table %>% rownames_to_column("ensembl")
-# tab_20_vs_nt <- edgeR::topTags(qlf_20_vs_nt, n = Inf)$table %>% rownames_to_column("ensembl")
-# tab_20_vs_3 <- edgeR::topTags(qlf_20_vs_3, n = Inf)$table %>% rownames_to_column("ensembl")
-# 
-# head(tab_20_vs_nt)
-# 
-# volcano_df <- tab_20_vs_nt %>%
-#   mutate(sig = FDR < 0.05)
-# 
-# ggplot(volcano_df, aes(x = logFC, y = -log10(PValue), color = sig)) +
-#   geom_point(alpha = 0.6) +
-#   theme_minimal() +
-#   labs(
-#     title = "EdgeR: 20CTG vs NT",
-#     x = "log2 fold-change",
-#     y = "-log10(p-value)"
-#   )
-# 
-# tab <- topTags(qlf_20_vs_nt, n = Inf)$table %>%
-#   rownames_to_column("gene") %>%
-#   mutate(
-#     neglog10P = -log10(PValue),
-#     direction = case_when(
-#       FDR < 0.05 & logFC > 0 ~ "Up",
-#       FDR < 0.05 & logFC < 0 ~ "Down",
-#       TRUE ~ "Not sig"
-#     )
-#   )
-# 
-# ggplot(tab, aes(x = logFC, y = neglog10P)) +
-#   geom_point(aes(color = direction), alpha = 0.7, size = 1.2) +
-#   scale_color_manual(values = c(
-#     "Up" = "red",
-#     "Down" = "blue",
-#     "Not sig" = "grey70"
-#   )) +
-#   geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "steelblue") +
-#   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "steelblue") +
-#   theme_minimal() +
-#   labs(
-#     title = "edgeR volcano: 20CTG vs NT",
-#     x = "log2 fold change (logFC)",
-#     y = "-log10(p-value)",
-#     color = NULL
-#   )
-# 
-# # Keep only the columns we need and ensure they are character
-# map_df <- mappings %>%
-#   transmute(
-#     ensembl = as.character(ensembl_gene_id),
-#     hgnc_symbol = as.character(hgnc_symbol)
-#   ) %>%
-#   distinct(ensembl, .keep_all = TRUE)
-# 
-# # Join mapping onto the edgeR results table (tab_20_vs_nt)
-# tab_20_vs_nt_annot <- tab_20_vs_nt %>%
-#   mutate(ensembl = as.character(ensembl)) %>%
-#   left_join(map_df, by = "ensembl") %>%
-#   mutate(
-#     # Use HGNC when available, otherwise fall back to Ensembl
-#     display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
-#                           hgnc_symbol,
-#                           ensembl)
-#   )
-# 
-# # Quick check: how many mapped?
-# mean(!is.na(tab_20_vs_nt_annot$hgnc_symbol))
-# 
-# head(tab_20_vs_nt_annot[, c("ensembl","hgnc_symbol","display_name","logFC","FDR")])
-# 
-# top_n <- 50  # change to 25/100 as desired
-# 
-# top_hits_tbl <- tab_20_vs_nt_annot %>%
-#   arrange(FDR, PValue) %>%
-#   slice_head(n = top_n)
-# 
-# # Ensembl IDs for subsetting the matrix
-# top_hits_ensembl <- top_hits_tbl$ensembl
-# 
-# # Row labels we want to show on the heatmap
-# top_hits_labels <- top_hits_tbl$display_name
-# 
-# head(top_hits_tbl[, c("ensembl","display_name","logFC","FDR")])
-# 
-# # logCPM from counts for visualization
-# # logCPM for visualization
-# logcpm <- edgeR::cpm(counts, log = TRUE, prior.count = 1)
-# 
-# # Keep only genes present in the expression matrix
-# keep <- top_hits_ensembl %in% rownames(logcpm)
-# 
-# hm_mat <- logcpm[top_hits_ensembl[keep], , drop = FALSE]
-# 
-# # Create labels aligned to hm_mat rows
-# hm_labels <- top_hits_labels[keep]
-# 
-# # IMPORTANT: avoid duplicate rownames (HGNC symbols can repeat)
-# # Make labels unique while preserving readability
-# rownames(hm_mat) <- make.unique(hm_labels)
-# 
-# # Z-score per gene across samples for pattern visibility
-# hm_z <- t(scale(t(hm_mat)))
-# 
-# dim(hm_z)
-# 
-# meta$cellline <- as.factor(meta$cellline)
-# meta$treatment <- as.factor(meta$treatment)
-# 
-# # Set3 palettes (qualitative)
-# treat_levels <- levels(meta$treatment)
-# cell_levels  <- levels(meta$cellline)
-# 
-# treat_cols <- setNames(
-#   brewer.pal(max(3, length(treat_levels)), "Set3")[seq_along(treat_levels)],
-#   treat_levels
-# )
-# 
-# cell_cols <- setNames(
-#   brewer.pal(max(3, length(cell_levels)), "Set2")[seq_along(cell_levels)],
-#   cell_levels
-# )
-# 
-# ha <- HeatmapAnnotation(
-#   treatment = meta$treatment,
-#   cellline  = meta$cellline,
-#   col = list(
-#     treatment = treat_cols,
-#     cellline  = cell_cols
-#   ),
-#   annotation_legend_param = list(
-#     treatment = list(title = "Treatment"),
-#     cellline  = list(title = "Cell line")
-#   )
-# )
-# 
-# col_fun <- circlize::colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
-# 
-# Heatmap(
-#   hm_z,
-#   col = col_fun,
-#   top_annotation = ha,
-#   show_row_names = FALSE,
-#   show_column_names = FALSE,
-#   cluster_rows = TRUE,
-#   cluster_columns = TRUE,
-#   row_title = paste0("Top ", nrow(hm_z), " genes (edgeR: 20CTG vs NT)"),
-#   column_title = "Samples"
-# )
-# 
-# Heatmap(
-#   hm_z[1:25,],
-#   col = col_fun,
-#   top_annotation = ha,
-#   show_row_names = TRUE,         # <-- now shows HGNC symbols
-#   row_names_gp = grid::gpar(fontsize = 8),
-#   show_column_names = FALSE,
-#   cluster_rows = TRUE,
-#   cluster_columns = TRUE,
-#   row_title = paste0("Top ", nrow(hm_z), " genes (edgeR: 20CTG vs NT)"),
-#   column_title = "Samples"
-# )
-# 
-# saveRDS(
-#   list(
-#     meta = meta,
-#     counts_mapped_filtered = counts_mapped_filtered,
-#     fit = fit,
-#     qlf_3_vs_nt = qlf_3_vs_nt,
-#     qlf_20_vs_nt = qlf_20_vs_nt,
-#     qlf_20_vs_3 = qlf_20_vs_3,
-#     tab_3_vs_nt = tab_3_vs_nt,
-#     tab_20_vs_nt = tab_20_vs_nt,
-#     tab_20_vs_3 = tab_20_vs_3
-#   ),
-#   file = "data/d1_edger_results.rds"
-# )
+# Contrasts
+contr <- makeContrasts(
+  `miR155_vs_Ctrl` = conditionmiR155 - conditionControl,
+  levels = design
+)
+
+# Estimate dispersion and fit QL model
+edge <- edgeR::estimateDisp(dge_filtered, design)
+fit <- edgeR::glmQLFit(edge, design)
+```
+
+```{r bcv_plot}
+plotBCV(edge)
+# TODO: add caption
+```
+```{r dge_test}
+miR155_vs_Ctrl <- edgeR::glmQLFTest(fit, contrast = contr)
+dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>% tibble::rownames_to_column("ensembl_id")
+kable_head(dge_results, caption = "Preview of top DE genes") # TODO:make sure it renders decently/pretty
+```
+
+```{r volcano_plot}
+volcano_df <- dge_results %>%
+  dplyr::mutate(sig = FDR < 0.05)
+
+ggplot2::ggplot(volcano_df,
+                ggplot2::aes(x = logFC, y = -log10(PValue), color = sig)) +
+  ggplot2::geom_point(alpha = 0.6) +
+  ggplot2::theme_minimal() +
+  ggplot2::labs(
+    title = "miR155 VS Neg. Ctrl",
+    x = "log2 fold-change",
+    y = "-log10(p-value)"
+    # TODO: rename legend title
+  )
+# TODO: add caption
+```
+```{r volcano_plot2}
+dge_results2 <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
+  tibble::rownames_to_column("ensembl_id") %>%
+  dplyr::mutate(
+    neglog10P = -log10(PValue),
+    direction = case_when(
+      FDR < 0.05 & logFC > 0 ~ "Up",
+      FDR < 0.05 & logFC < 0 ~ "Down",
+      TRUE ~ "Not sig"
+    )
+  )
+
+ggplot2::ggplot(dge_results2, ggplot2::aes(x = logFC, y = neglog10P)) +
+  ggplot2::geom_point(ggplot2::aes(color = direction), alpha = 0.7, size = 1.2) +
+  ggplot2::scale_color_manual(values = c(
+    "Up" = "red",
+    "Down" = "blue",
+    "Not sig" = "grey70"
+  )) +
+  ggplot2::geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "steelblue") +
+  ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "steelblue") +
+  ggplot2::theme_minimal() +
+  ggplot2::labs(
+    title = "miR155 VS Neg. Ctrl",
+    x = "log2 fold change (logFC)",
+    y = "-log10(p-value)",
+    color = NULL
+  )
+# TODO: add caption
+```
+```{r top_degs}
+# Keep only the columns we need and ensure they are character
+map_df <- count_mappings %>%
+  dplyr::mutate(
+    ensembl_id = as.character(ensembl_gene_id),
+    hgnc_symbol = as.character(hgnc_symbol),
+    .keep = "none"
+  ) %>%
+  dplyr::distinct(ensembl_id, .keep_all = TRUE)
+
+# Join mapping onto the edgeR results table 
+dge_results2_annotated <- dge_results2 %>%
+  dplyr::mutate(ensembl_id = as.character(ensembl_id)) %>%
+  dplyr::left_join(map_df, by = "ensembl_id") %>%
+  dplyr::mutate(
+    # Use HGNC when available, otherwise fall back to Ensembl
+    display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
+                          hgnc_symbol,
+                          ensembl_id)
+  )
+
+# Quick check: how many mapped?
+mapped_percentage <- mean(!is.na(dge_results2_annotated$hgnc_symbol)) * 100
+cat("Proportion (%) of maped DE results: ", mapped_percentage)
+
+head(dge_results2_annotated[, c("ensembl_id", "hgnc_symbol", "display_name", "logFC", "FDR")])
+
+# Top DEGs: all genes with FDR < 0.05
+top_deg_hits <- dge_results2_annotated %>%
+  dplyr::arrange(FDR, PValue) %>%
+  dplyr::filter(FDR < 0.05)
+
+# Ensembl IDs for subsetting the matrix
+top_hits_ensembl <- top_deg_hits$ensembl_id
+
+# Row labels we want to show on the heatmap
+top_hits_labels <- top_deg_hits$display_name
+
+head(top_deg_hits[, c("ensembl_id","display_name","logFC","FDR")])
+```
+```{r expression_matrix}
+# logCPM from counts for visualization
+# logCPM for visualization
+logcpm <- edgeR::cpm(final_counts, log = TRUE, prior.count = 1)
+
+# Keep only genes present in the expression matrix
+keep <- top_hits_ensembl %in% rownames(logcpm)
+
+hm_mat <- logcpm[top_hits_ensembl[keep], , drop = FALSE]
+
+# Create labels aligned to hm_mat rows
+hm_labels <- top_hits_labels[keep]
+
+# IMPORTANT: avoid duplicate rownames (HGNC symbols can repeat)
+# Make labels unique while preserving readability
+rownames(hm_mat) <- make.unique(hm_labels)
+
+# Z-score per gene across samples for pattern visibility
+hm_z <- t(scale(t(hm_mat)))
+
+dim(hm_z)
+```
+```{r heatmap_annotation}
+meta_df$cell_line <- as.factor(meta_df$cell_line)
+meta_df$condition <- as.factor(meta_df$condition)
+
+# Set3 palettes (qualitative)
+trtmnt_levels <- levels(meta_df$condition)
+cell_levels  <- levels(meta_df$cell_line)
+
+trtmnt_cols <- setNames(
+  brewer.pal(max(3, length(trtmnt_levels)), "Set3")[seq_along(trtmnt_levels)],
+  trtmnt_levels
+)
+
+cell_cols <- setNames(
+  brewer.pal(max(3, length(cell_levels)), "Set2")[seq_along(cell_levels)],
+  cell_levels
+)
+
+ha <- HeatmapAnnotation(
+  treatment = meta_df$condition,
+  cell_line  = meta_df$cell_line,
+  col = list(
+    treatment = trtmnt_cols,
+    cell_line  = cell_cols
+  ),
+  annotation_legend_param = list(
+    treatment = list(title = "Treatment"),
+    cell_line  = list(title = "Cell line")
+  )
+)
+```
+
+```{r heatmap}
+col_fun <- circlize::colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+
+ComplexHeatmap::Heatmap(
+  hm_z,
+  col = col_fun,
+  top_annotation = ha,
+  show_row_names = FALSE,
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  row_title = paste0("Top ", nrow(hm_z), " genes (miR155 VS Neg. Ctrl)"),
+  column_title = "Samples"
+)
+
+ComplexHeatmap::Heatmap(
+  hm_z[1:25,], # TODO: Is this the correct way to add the top 25?
+  col = col_fun,
+  top_annotation = ha,
+  show_row_names = TRUE,         # <-- now shows HGNC symbols
+  row_names_gp = grid::gpar(fontsize = 8),
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  row_title = paste0("Top ", nrow(hm_z), " genes (miR155 VS Neg. Ctrl)"),
+  column_title = "Samples"
+)
+# TODO: fix heatmap formatting + add captions
 ```
 
 ## 5 Discussion
@@ -821,6 +616,10 @@ citation("GEOquery")
 citation("dplyr")
 print(citation("biomaRt"), bibtex=TRUE)
 
-citation("SummarizedExperiment")  # TODO: if using data from getRNASeqData
+# citation("SummarizedExperiment")  # TODO: if using data from getRNASeqData
 citation("readr") # TODO: if reading raw counts file from getGEOSuppFiles
+citation("edgeR")
+citation("tibble")
+citation("ggplot2")
+print(citation("ComplexHeatmap"), bibtex = TRUE)
 ```

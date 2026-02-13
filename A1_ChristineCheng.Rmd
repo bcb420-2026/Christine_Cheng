@@ -1,5 +1,5 @@
 ---
-title: "A1 - Dataset selection, cleaning, normalization, and differential gene expression"
+title: "A1 - Dataset Selection, Cleaning, Normalization, and Differential Gene Expression"
 author: "Christine En-Tse Cheng"
 date: "`r Sys.Date()`"
 output:
@@ -8,16 +8,14 @@ output:
     toc_depth: 3
     toc_float: true
     code_folding: hide
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
 bibliography: A1_files/A1_references.bib    # TODO: insert the citations/bibliography file
 link-citations: true            # this is for the citations/bibliography 
 nocite: '@*'
 ---
 
 ```{r setup, include=FALSE}
-# TODO: put back in yaml header above bibliography
-# knit: (function(inputFile, encoding) {
-#   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
-
 knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE,
                       message = FALSE,

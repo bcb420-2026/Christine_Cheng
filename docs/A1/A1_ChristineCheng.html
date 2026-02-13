@@ -1599,44 +1599,77 @@ Normalization, and Differential Gene Expression</h1>
 
 <div id="introduction" class="section level2">
 <h2>1 Introduction</h2>
-<p>TODO: introduce the dataset/paper, maybe briefly talk about how/why
-the dataset was chosen</p>
 <p>This report describes the selection, data preparation, normalization,
 and differential expression analysis of a publicly available human gene
-expression dataset. TODO: The workflow follows best practices for
-RNA-seq analysis as outlined by (<span class="citation">Dawadi et al.
-(<a href="#ref-dawadi_bench_2025">2025</a>)</span>)</p>
+expression dataset. The workflow follows best practices for RNA-seq
+analysis as outlined by (<span class="citation">Dawadi et al. (<a href="#ref-dawadi_bench_2025">2025</a>)</span>)</p>
 <div id="q1" class="section level3">
 <h3>1.1 Dataset Selection</h3>
-<p>TODO: brief description The selected dataset is <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605">GSE166605</a>
+<p>The selected dataset is <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605">GSE166605</a>
 from the Gene Expression Omnibus (GEO). This RNA-seq dataset
-investigates TODO: [transcriptional responses of human CD14+ monocytes
-under experimentally defined conditions involving differential treatment
-exposure]. The dataset was chosen because TODO The selected dataset is
-GSE166605 from the Gene Expression Omnibus (GEO). This RNA-seq dataset
-investigates the transcriptional responses of human CD14+ monocytes.
-Specifically, it analyzes the effect of miR-155 overexpression compared
-to a negative control.</p>
-<p>This dataset is of interest because miR-155 is a critical regulator
-of immune function and inflammation. Understanding its downstream
-targets in monocytes can reveal mechanisms of immune activation.</p>
+investigates the transcriptional responses of healthy human CD14+
+monocytes. Specifically, it analyzes the transcriptomic effect of
+microRNA <em>miR-155</em> overexpression compared to a negative control.
+(<span class="citation">Olsson et al. (<a href="#ref-olsson_mir-155-overexpressing_2022">2022</a>)</span>)</p>
+<div id="q1" class="section level4">
+<h4></h4>
+<p>This dataset is of interest because <em>miR-155</em> is a critical
+regulator of immune function and inflammation and has been shown to
+induce transcriptomic changes mimicking that of macrophages in
+rheumatoid arthritis (RA). Understanding its downstream targets in
+monocytes can reveal mechanisms of innate and adaptive immune responses
+in RA pathogenesis. Transcriptomic profiling of this dataset can reveal
+a link between microRNA dysregulation and pathogenic macrophage
+phenotypes. Findings regarding downstream <em>miR-155</em> targets has
+great potential for the identification of therapeutic checkpoints that
+drive chronic join inflammation. (<span class="citation">Olsson et al.
+(<a href="#ref-olsson_mir-155-overexpressing_2022">2022</a>)</span>) I
+chose this dataset due to the applicability of this dataset’s findings
+to potential therapeutics of a chronic disease, as this sort of analysis
+falls within my research interests of using computational tools for
+medical advances.</p>
+<p>TODO:</p>
+<ul>
+<li>make sure the coverage is as complete as possible: experiments that
+measure expression for only a small subset of genes are not
+suitable</li>
+<li>make sure the dataset originates from a high-quality experiment:
+should be performed with biological replicates (the more the better)
+<ul>
+<li>experiments should be performed with mature experimental platforms,
+according to best-practice procedures =&gt; recent (within 10 years)
+experiments</li>
+</ul></li>
+</ul>
 <p>A detailed account of the dataset discovery process is documented
 separately <a href="https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-4-%E2%80%90-Dataset-Selection-(2.3)">here</a>.</p>
 </div>
+</div>
 <div id="dataset-background" class="section level3">
 <h3>1.2 Dataset Background</h3>
+<p>Here are sample high-level facts regarding the dataset and associated
+study:</p>
 <ul>
-<li>paper background(<span class="citation">Olsson et al. (<a href="#ref-olsson_mir-155-overexpressing_2022">2022</a>)</span>)</li>
+<li><p>Organism: Homo sapiens</p></li>
+<li><p>Tissue: CD14+ Monocytes</p></li>
+<li><p>Control Condition: Negative Control (Neg_C)</p></li>
+<li><p>Test Condition: miR-155 over-expression (miR_155)</p></li>
 </ul>
 <div id="q2" class="section level4">
 <h4></h4>
-<ul>
-<li>TODO: control and test conditions of dataset Organism: Homo
-sapiens</li>
-</ul>
-<p>Tissue: CD14+ Monocytes</p>
-<p>Control Condition: Negative Control (Neg_C)</p>
-<p>Test Condition: miR-155 Overexpression (miR_155)</p>
+<p>The study that generated the RNA-seq dataset studied the
+transcriptomic effects of <em>miR-155</em> overexpression in healthy
+monocytes against a negative control.The test condition group consists
+of healthy donor-derived preipheral blood CD14+ monocytes transfected
+with <em>miR-155</em> mimics (synthetic double-stranded RNA molecules
+that function as mature <em>miR-155</em>). The negative control samples
+consist of healthy donor-derived CD14+ monocytes transfected with a
+non-targeting control mimic (i.e., a scrambled/random sequence). (<span class="citation">Olsson et al. (<a href="#ref-olsson_mir-155-overexpressing_2022">2022</a>)</span>)</p>
+</div>
+<div id="q3" class="section level4">
+<h4></h4>
+<p>There are 5 samples for each of negative control and <em>miR-155</em>
+overexpression conditions in the dataset.</p>
 </div>
 </div>
 </div>
@@ -1655,9 +1688,9 @@ downloaded programmatically in R without manual file management, to
 ensure reproducibility of results. To ensure reproducibility while
 avoiding repeated downloads, files are only retrieved if not already
 present locally in designated data files directory.</p>
-<p>TODO:make pretty: Below is a snapshot of the raw matrix:</p>
+<p>Below is a snapshot of the raw data from GEO:</p>
 <pre class="r"><code>GSE_ID &lt;- &quot;GSE166605&quot; # constant for GEO series ID to reduce risk of accessing the wrong dataset
-data_dir &lt;- &quot;A1_files&quot;
+data_dir &lt;- &quot;A1_files&quot;  # sub-directory for all A1 files
 
 # checking for existence of directory for storing data files
 if (!dir.exists(data_dir)) 
@@ -1675,11 +1708,10 @@ if (!file.exists(counts_file)) {
 # read in raw count file: columns are samples and rows are genes
 raw_counts &lt;- readr::read_tsv(counts_file, show_col_types = FALSE)
 
-# names(raw_counts)[1:min(12, ncol(raw_counts))]  # TODO: remove
 # preview raw count data
-kable_head(raw_counts, caption = &quot;Preview of Raw Count Data from GEO&quot;) # TODO:make sure it renders decently/pretty</code></pre>
+kable_head(raw_counts, caption = &quot;Snapshot of Raw Count Data from GEO&quot;) </code></pre>
 <table>
-<caption><strong>Table 1.</strong> Preview of Raw Count Data from
+<caption><strong>Table 1.</strong> Snapshot of Raw Count Data from
 GEO</caption>
 <colgroup>
 <col width="10%" />
@@ -1798,32 +1830,214 @@ GEO</caption>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code># sanity check: gene IDs are Ensembl IDs
-# all(grepl(&quot;^ENSG&quot;, raw_counts[[1]]))
-
-# helper function to remove Ensembl IDs&#39; version numbers:
+<pre class="r"><code># TODO: journal entry
+# sanity check: gene IDs are Ensembl IDs
+# all(grepl(&quot;^ENSG&quot;, raw_counts[[1]]))</code></pre>
+</div>
+<div id="data-processing-gene-id-mapping" class="section level3">
+<h3>2.2 Data Processing &amp; Gene ID Mapping</h3>
+<p>Before using the raw counts for downstream analyses, I performed some
+basic processing and data cleaning. From the raw counts matrix, the
+‘Gene name’ column was dropped and the Ensembl ID version numbers were
+stripped from th ‘GeneID’ column (which was also renamed to
+ensembl_gene_id for increased variable descriptiveness and easier
+downstream ID mapping).</p>
+<pre class="r"><code># helper function to remove Ensembl IDs&#39; version numbers using regex:
 strip_ensembl_version &lt;- function(x) sub(&quot;\\..*$&quot;, &quot;&quot;, x)
 
-# Build a counts matrix (genes × samples)
+# build counts matrix
 counts &lt;- raw_counts %&gt;%
   dplyr::select(-`Gene name`) %&gt;%
-  dplyr::rename(ensembl_gene_id = GeneID) %&gt;% # rename to be more descriptive and for easier ID mapping downstream
+  dplyr::rename(ensembl_gene_id = GeneID) %&gt;%
   as.data.frame()
 
-counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id)
+# strip Ensemble ID version numbers
+counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id) 
 
-ensembl &lt;- biomaRt::useMart(&quot;ensembl&quot;, dataset = &quot;hsapiens_gene_ensembl&quot;) # using latest Human Genes mart
+kable_head(counts, caption = &quot;Snapshot of Processed Count Matrix&quot;) </code></pre>
+<table style="width:100%;">
+<caption><strong>Table 2.</strong> Snapshot of Processed Count
+Matrix</caption>
+<colgroup>
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">ensembl_gene_id</th>
+<th align="right">D1 CD14 Neg C</th>
+<th align="right">D1 CD14 miR-155</th>
+<th align="right">D2 CD14 Neg C</th>
+<th align="right">D2 CD14 miR-155</th>
+<th align="right">D3 CD14 Neg C</th>
+<th align="right">D3 CD14 miR-155</th>
+<th align="right">D4 CD14 Neg C</th>
+<th align="right">D4 CD14 miR-155</th>
+<th align="right">D5 CD14 Neg C</th>
+<th align="right">D5 CD14 miR-155</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000223972</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000227232</td>
+<td align="right">429</td>
+<td align="right">256</td>
+<td align="right">152</td>
+<td align="right">137</td>
+<td align="right">107</td>
+<td align="right">129</td>
+<td align="right">127</td>
+<td align="right">73</td>
+<td align="right">140</td>
+<td align="right">124</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000278267</td>
+<td align="right">21</td>
+<td align="right">26</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">13</td>
+<td align="right">6</td>
+<td align="right">5</td>
+<td align="right">7</td>
+<td align="right">15</td>
+<td align="right">10</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000243485</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000284332</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000237613</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<div id="mapping-ensembl-ids-to-hgnc-symbols" class="section level4">
+<h4>Mapping Ensembl IDs to HGNC Symbols</h4>
+<p>Although the original count matrix contains gene names that resemble
+HGNC gene symbols, they were re-mapped to represent the most up-to-date
+gene annotations between the Ensembl and HUGO databases:</p>
+<p>TODO: verify ID mapping /w provided ‘Gene name’</p>
+<pre class="r"><code>ensembl &lt;- biomaRt::useMart(&quot;ensembl&quot;, dataset = &quot;hsapiens_gene_ensembl&quot;) # using latest Human Genes mart
+
+# create mapping between Ensembl IDs and HGNC gene symbols
 ids_map &lt;- biomaRt::getBM(
+  # retrieving both Ensembl IDs and HGNC symbols as attribute to ensure we can map back to Ensembl gene ID in the original dataset if needed at any point in downstream analyses
   attributes = c(&quot;ensembl_gene_id&quot;, &quot;hgnc_symbol&quot;),
   filters = &quot;ensembl_gene_id&quot;,
   values = counts$ensembl_gene_id,
   mart = ensembl
 )
 
-mapped_counts &lt;- counts %&gt;%
-  dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;) %&gt;%
-  dplyr::select(ensembl_gene_id,hgnc_symbol, everything())</code></pre>
-<pre class="r"><code># # found  duplicate Ensembl IDs
+kable_head(ids_map, caption = &quot;Preview of gene ID mapping between Ensembl IDs and HUGO gene IDs&quot;) </code></pre>
+<table>
+<caption><strong>Table 3.</strong> Preview of gene ID mapping between
+Ensembl IDs and HUGO gene IDs</caption>
+<thead>
+<tr class="header">
+<th align="left">ensembl_gene_id</th>
+<th align="left">hgnc_symbol</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000000457</td>
+<td align="left">SCYL3</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000460</td>
+<td align="left">FIRRM</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000938</td>
+<td align="left">FGR</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000971</td>
+<td align="left">CFH</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000001460</td>
+<td align="left">STPG1</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000001461</td>
+<td align="left">NIPAL3</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="q4" class="section level4">
+<h4></h4>
+<p>Upon exploring the mapping between gene IDs, duplicate Ensembl IDs
+were discovered. This likely resulted from the version number stripping
+step. Through various troubleshooting steps (detailed <a href="https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-5-%E2%80%90-Assignment-1#user-content-Troubleshooting_Ensembl_IDs_duplication">here</a>),
+I was able to verify that the duplication originated from BioMart
+mapping 2 different HGNC symbols to the same stripped Ensembl ID.</p>
+<p>TODO: reasoning on why this 2-to-1 mapping may have occured and why
+it is okay to do what I did to address the issue</p>
+<p>TODO: insert short block of code displaying the duplicate (?)</p>
+<pre class="r"><code># TODO: journal entry
+# mapped_counts &lt;- counts %&gt;%
+#   dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;) %&gt;%
+#   dplyr::select(ensembl_gene_id,hgnc_symbol, everything())
+
+# # found  duplicate Ensembl IDs
 # duplicates &lt;- mapped_counts %&gt;%
 #   dplyr::group_by(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n() &gt; 1) %&gt;%
@@ -1857,16 +2071,23 @@ mapped_counts &lt;- counts %&gt;%
 # # +   dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;)
 # # mapped_counts already has the duplicated `missing_gene` -&gt; BioMart mapping must be the issue
 # ids_map[ids_map$ensembl_gene_id == missing_gene, ] # confirms that BioMart mapped two different HGNC symbols to the same Ensembl ID</code></pre>
-<pre class="r"><code>## FIX:
-# 1. Collapse the map first so each Ensembl ID appears exactly once
+<p>To address the issue, I first collapsed the gene ID map so that each
+Ensembl ID only appears once. For Ensembl IDs mapped to more than one
+HUGO symbol, I concatenated the HGNC symbols together on the row
+corresponding to the Ensembl ID. The expression data matrix is then
+joined with this collapsed ID map. This way, gene mapping data isn’t
+lost and the final mapped counts matrix has unique row names (which is
+necessary for downstream analyses).</p>
+<pre class="r"><code># 1. Collapse ID map
 ids_map_unique &lt;- ids_map %&gt;%
   dplyr::group_by(ensembl_gene_id) %&gt;%
   dplyr::summarize(hgnc_symbol = paste(unique(hgnc_symbol), collapse = &quot;, &quot;))
 
-# 2. Join with the collapsed map
+# 2. Join counts matrix with the collapsed ID map
 mapped_counts_fixed &lt;- counts %&gt;%
   dplyr::left_join(ids_map_unique, by = &quot;ensembl_gene_id&quot;)</code></pre>
-<pre class="r"><code># duplicates1 &lt;- mapped_counts_fixed %&gt;%
+<pre class="r"><code># TODO: journal entry - verification of one-to-one gene ID mapping
+# duplicates1 &lt;- mapped_counts_fixed %&gt;%
 #   dplyr::group_by(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n() &gt; 1) %&gt;%
 #   dplyr::arrange(ensembl_gene_id)
@@ -1888,6 +2109,8 @@ mapped_counts_fixed &lt;- counts %&gt;%
 # nrow(duplicates1) == nrow(duplicate_summary1)*2
 # nrow(duplicate_summary1)*2 == nrow(id_conflicts1)
 # #fixed :)</code></pre>
+<p>I then checked the final mapped counts to ensure there’s no more
+mis-mapping between Ensemble and HGNC:</p>
 <pre class="r"><code>consistency_check &lt;- mapped_counts_fixed %&gt;%
   dplyr::group_by(ensembl_gene_id) %&gt;%
   dplyr::summarize(
@@ -1900,32 +2123,48 @@ mapped_counts_fixed &lt;- counts %&gt;%
 
 cat(&quot;Any more Ensembl IDs-HGNC symbols one-to-many mappings? &quot;, nrow(consistency_check) &gt; 0) </code></pre>
 <pre><code>## Any more Ensembl IDs-HGNC symbols one-to-many mappings?  FALSE</code></pre>
-<pre class="r"><code># Summing up expression values for duplicate Ensembl ID rows
+<p>However, there were still some non-unique rows (i.e., duplicate
+Ensembl IDs that has a matching pair of duplicate HGNC symbols). I
+summed up the expression values for these rows, to preserve the total
+transcriptional output for those genes; followed by a quick sanity check
+to ensure all duplicates were properly removed:</p>
+<pre class="r"><code># summing up expression values for duplicate Ensembl ID rows
 final_counts &lt;- mapped_counts_fixed %&gt;%
   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
   dplyr::summarise(dplyr::across(tidyr::starts_with(&quot;D&quot;), sum)) %&gt;% # only sum sample columns (labels start /w &#39;D&#39;)
   dplyr::ungroup()
 
-# # sanity check:
-# length(unique(final_counts$ensembl_gene_id)) == nrow(final_counts)</code></pre>
-<pre class="r"><code># BUT
-hgnc_duplication &lt;- length(unique(final_counts$hgnc_symbol)) == nrow(final_counts) # duplicate HGNC symbols still exist!
+# sanity check
+no_duplicates &lt;- length(unique(final_counts$ensembl_gene_id)) == nrow(final_counts)
+cat(&quot;All unique Ensembl IDs in count matrix? &quot;, no_duplicates)</code></pre>
+<pre><code>## All unique Ensembl IDs in count matrix?  TRUE</code></pre>
+</div>
+<div id="q7a" class="section level4">
+<h4></h4>
+<p>However, duplicate HGNC symbols still exist!</p>
+<pre class="r"><code>hgnc_duplication &lt;- length(unique(final_counts$hgnc_symbol)) == nrow(final_counts)
 cat(&quot;All unique HGNC symbols? &quot;, hgnc_duplication)</code></pre>
 <pre><code>## All unique HGNC symbols?  FALSE</code></pre>
 <p>Since I plan on conducting differential expression analysis, I will
 not remove the rows with duplicated HGNC symbol as that may end up
-merging - Readthroughs: Two genes are transcribed together.</p>
-<ul>
-<li><p>Paralogs/Homologs: Ensembl assigns distinct IDs to very similar
-regions (like ENSG…1 and ENSG…2), but the HGNC nomenclature considers
-them the same gene.</p></li>
-<li><p>Pseudo-genes: A functional gene and its “broken” version might
-share a symbol but have separate Ensembl entries. <a href>TODO:
-source</a> which can result in not specific results. Instead the unique
+accidentally cause non-specific results, like merging
+<strong>paralogs/homologs</strong> that have similar (but non-identical)
+Ensembl IDs due to close proximity in the genome, but are annotated as
+the same gene by HGNC nomenclature. (<span class="citation">(<a href="#ref-TODO"><strong>TODO?</strong></a>)</span>: source)</p>
+</div>
+<div id="q5" class="section level4">
+<h4></h4>
+<p>Similarly, there are some Ensembl IDs that couldn’t be mapped to a
+HGNC symbol through the current HUGO-Ensembl ID mapping.</p>
+<pre class="r"><code># check if any Ensembl IDs failed to map to a HGNC symbol
+unmapped &lt;- sum(is.na(final_counts$hgnc_symbol)) &gt; 0
+cat(&quot;All rows mapped to HGNC symbol? &quot;, !unmapped)</code></pre>
+<pre><code>## All rows mapped to HGNC symbol?  FALSE</code></pre>
+<p>Instead of removing any genes for both these cases, the unique
 Ensembl IDs will be kept as a stable reference while the HGNC symbols
-(including duplicates) are kept as annotations.</p></li>
-</ul>
-<pre class="r"><code>rownames(final_counts) &lt;- final_counts$ensembl_gene_id # added rownames (succesfully)
+(including duplicates and un-mapped) are kept as annotations:</p>
+<pre class="r"><code># TODO: journal entry
+# rownames(final_counts) &lt;- final_counts$ensembl_gene_id # added rownames (succesfully)
 # BUT, no matter which method, I can&#39;t get the rownames to stay:
 # final_counts$ensembl_gene_id &lt;- NULL
 # final_counts &lt;- dplyr::select(final_counts, !(ensembl_gene_id))
@@ -1935,17 +2174,192 @@ final_counts &lt;- mapped_counts_fixed %&gt;%
   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
   dplyr::summarise(dplyr::across(tidyr::starts_with(&quot;D&quot;), sum)) %&gt;% # results in tibble, that loses (temporary attached) rownames once another operation is applied on it
   dplyr::ungroup() %&gt;%
-  as.data.frame() # need to convert to standard data.frame here</code></pre>
-<pre class="r"><code># create objects for downstream DE analysis
-count_mappings &lt;- final_counts[, 1:2]
+  as.data.frame() # need to convert to standard data.frame here
 
+kable_head(final_counts, caption = &quot;Preview of Annotated Count Matrix&quot;) </code></pre>
+<table style="width:100%;">
+<caption><strong>Table 4.</strong> Preview of Annotated Count
+Matrix</caption>
+<colgroup>
+<col width="8%" />
+<col width="6%" />
+<col width="7%" />
+<col width="8%" />
+<col width="7%" />
+<col width="8%" />
+<col width="7%" />
+<col width="8%" />
+<col width="7%" />
+<col width="8%" />
+<col width="7%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">ensembl_gene_id</th>
+<th align="left">hgnc_symbol</th>
+<th align="right">D1 CD14 Neg C</th>
+<th align="right">D1 CD14 miR-155</th>
+<th align="right">D2 CD14 Neg C</th>
+<th align="right">D2 CD14 miR-155</th>
+<th align="right">D3 CD14 Neg C</th>
+<th align="right">D3 CD14 miR-155</th>
+<th align="right">D4 CD14 Neg C</th>
+<th align="right">D4 CD14 miR-155</th>
+<th align="right">D5 CD14 Neg C</th>
+<th align="right">D5 CD14 miR-155</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000000003</td>
+<td align="left">TSPAN6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000005</td>
+<td align="left">TNMD</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000419</td>
+<td align="left">DPM1</td>
+<td align="right">795</td>
+<td align="right">551</td>
+<td align="right">633</td>
+<td align="right">519</td>
+<td align="right">557</td>
+<td align="right">651</td>
+<td align="right">568</td>
+<td align="right">539</td>
+<td align="right">621</td>
+<td align="right">535</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000457</td>
+<td align="left">SCYL3</td>
+<td align="right">328</td>
+<td align="right">291</td>
+<td align="right">381</td>
+<td align="right">318</td>
+<td align="right">290</td>
+<td align="right">354</td>
+<td align="right">428</td>
+<td align="right">380</td>
+<td align="right">435</td>
+<td align="right">490</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000460</td>
+<td align="left">FIRRM</td>
+<td align="right">128</td>
+<td align="right">120</td>
+<td align="right">151</td>
+<td align="right">136</td>
+<td align="right">132</td>
+<td align="right">168</td>
+<td align="right">153</td>
+<td align="right">133</td>
+<td align="right">201</td>
+<td align="right">184</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000938</td>
+<td align="left">FGR</td>
+<td align="right">8771</td>
+<td align="right">11903</td>
+<td align="right">11542</td>
+<td align="right">10888</td>
+<td align="right">7209</td>
+<td align="right">10837</td>
+<td align="right">9394</td>
+<td align="right">7463</td>
+<td align="right">9590</td>
+<td align="right">9248</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="exploratory-statistics" class="section level3">
+<h3>2.3 Exploratory Statistics</h3>
+<pre class="r"><code># TODO: compute overview statistics to assess data quality for the control and test conditions in dataset
+  # make sure the coverage is as complete as possible: experiments that measure expression for only a small subset of genes are not suitable
+  # make sure the dataset originates from a high-quality experiment: should be performed with biological replicates (the more the better)
+
+# drop any rows that have 0 expression or NA expression across all samples
+final_counts &lt;- final_counts %&gt;%
+  dplyr::filter(dplyr::if_any(-c(1, 2), ~ !is.na(.x) &amp; .x != 0))</code></pre>
+<div id="q7b" class="section level4">
+<h4></h4>
+<pre class="r"><code># check for expression value duplicates across samples
+dup_samples &lt;- final_counts[, c(FALSE, FALSE, duplicated(as.list(final_counts[, 3:ncol(final_counts)])))]
+cat(&quot;\nUnique expression values between samples? &quot;, ncol(dup_samples) == 0)</code></pre>
+<pre><code>## 
+## Unique expression values between samples?  TRUE</code></pre>
+</div>
+</div>
+<div id="data-trimming" class="section level3">
+<h3>2.4 Data Trimming</h3>
+<pre class="r"><code># TODO: remove outliers, if applicable
+  # if there&#39;s reason to believe measurement error has occured &gt; discard outlier</code></pre>
+</div>
+</div>
+<div id="data-filtering-and-normalization" class="section level2">
+<h2>3 Data filtering and normalization</h2>
+<p>This next section describes the steps taken to prepare the dataset
+for differential expression analysis, specifically using
+<code>edgeR</code>.</p>
+<div id="creating-inputs-for-edger" class="section level3">
+<h3>3.1 Creating inputs for <code>edgeR</code></h3>
+<p>Based on <code>edgeR</code> documentation, negative and
+<code>NA</code> count values are not permitted (these types of values
+also don’t make sense biologically), so the count matrix was checked to
+ensure <code>edgeR</code> input preconditions are met:</p>
+<pre class="r"><code># create objects for downstream DE analysis (meeting edgeR input preconditions)
+
+count_mappings &lt;- final_counts[, 1:2] # clean map between Ensembl IDs and HGNC symbols
+
+# setting up count matrix to match expected row names and column names
 rownames(final_counts) &lt;- final_counts$ensembl_gene_id
 final_counts$ensembl_gene_id &lt;- NULL
 final_counts$hgnc_symbol &lt;- NULL
 
-# TODO: is this necessary???
+valid_counts &lt;- all(sapply(final_counts, is.numeric))
+cat(&quot;Valid count matrix values? &quot;, valid_counts)</code></pre>
+<pre><code>## Valid count matrix values?  TRUE</code></pre>
+<pre class="r"><code># check that no expression values are negative or NA
+edger_precon &lt;- all(sapply(final_counts, function(x) all(!is.na(x) &amp; x &gt;= 0 &amp; x %% 1 == 0)))
+cat(&quot;\nFinal count matrix meets input preconditions? &quot;, edger_precon)</code></pre>
+<pre><code>## 
+## Final count matrix meets input preconditions?  TRUE</code></pre>
+<pre class="r"><code># TODO: is this necessary???
 # final_counts1 &lt;- as.matrix(final_counts)
 # storage.mode(final_counts1[, 2:ncol(final_counts1)]) &lt;- &quot;integer&quot;</code></pre>
+</div>
+<div id="preparing-metadata" class="section level3">
+<h3>3.2 Preparing Metadata</h3>
+<p>In addition to the cleaned counts matrix and gene ID mapping,
+metadata outlining the dataset samples, cell line(s), and condition(s)
+is also needed:</p>
 <pre class="r"><code># Sample name format: D# CD14 control/treatment_name
 samples &lt;- colnames(final_counts)
 cell_line &lt;- unlist(lapply(samples,
@@ -1962,7 +2376,7 @@ meta_df &lt;- data.frame(samples, cell_line, condition)
 
 kable_head(meta_df, n = 10, caption = &quot;Sample Metadata&quot;)</code></pre>
 <table>
-<caption><strong>Table 2.</strong> Sample Metadata</caption>
+<caption><strong>Table 5.</strong> Sample Metadata</caption>
 <thead>
 <tr class="header">
 <th align="left">samples</th>
@@ -2028,26 +2442,155 @@ kable_head(meta_df, n = 10, caption = &quot;Sample Metadata&quot;)</code></pre>
 #              meta = meta_df,
 #              mappings = count_mappings),
 #         file = &quot;A1_files/counts_and_metadata.rds&quot;)</code></pre>
-<pre class="r"><code># based on edgeR documentation, negative and NA count values are not permitted -&gt; need to ensure it meets requirements
-edger_precon &lt;- all(sapply(final_counts, function(x) all(!is.na(x) &amp; x &gt;= 0 &amp; x %% 1 == 0)))
-cat(&quot;Final count matrix meets input preconditions? &quot;, edger_precon)</code></pre>
-<pre><code>## Final count matrix meets input preconditions?  TRUE</code></pre>
-<pre class="r"><code>dge &lt;- edgeR::DGEList(final_counts)
-dge$samples &lt;- cbind(dge$samples, meta_df)</code></pre>
-<pre class="r"><code># Filter lowly expressed genes
-# Purpose: Removing low-count genes improves statistical power by reducing the burden of multiple testing and removing &quot;noisy&quot; data that cannot reach significance anyway. 
-design &lt;- model.matrix(~ 0 + condition, data = meta_df)
-# only creating the design contrast /w condition since all 10 samples were from the same cell line, thus control for batch effects and related is not necessary.
+</div>
+<div id="data-filtering" class="section level3">
+<h3>3.3 Data filtering</h3>
+<p>Using an <code>edgeR</code> data container and package-level
+functions, lowly expressed genes were filtered out based on threholds
+set by <code>edgeR</code> based on the design matrix of the
+dataset.(<span class="citation">Chen et al. (<a href="#ref-chen_reads_2016">2016</a>)</span>) The purpose of this step
+is to improve statistical power by reducing the burden of multiple
+testing and removing “noisy” data that cannot reach significance
+anyway.</p>
+<pre class="r"><code># create edgeR data container
+dge &lt;- edgeR::DGEList(final_counts)
+dge$samples &lt;- cbind(dge$samples, meta_df)  # adding metadata to sample data
 
+# create dataset design matrix
+  # only creating the design contrast /w condition since all 10 samples were from the same cell line, thus control for batch effects and related is not necessary
+design &lt;- model.matrix(~ 0 + condition, data = meta_df)
+
+# filter out lowly expressed genes and recalculate library sizes based on remaining genes
 keep &lt;- edgeR::filterByExpr(dge, design)
 dge_filtered &lt;- dge[keep, , keep.lib.sizes = FALSE]
 
 filtered_percent &lt;- round((1 - (nrow(dge_filtered) / nrow(dge))) * 100, digits = 2)
-cat(&quot;Approximately &quot;, filtered_percent, &quot;% of genes were determined by the design matrix to be lowly expressed and thus removed for downstream analyses.&quot;)</code></pre>
-<pre><code>## Approximately  73.87 % of genes were determined by the design matrix to be lowly expressed and thus removed for downstream analyses.</code></pre>
+cat(&quot;Approximately &quot;, filtered_percent, &quot;% of genes had low expression and thus removed for downstream analyses.&quot;)</code></pre>
+<pre><code>## Approximately  57.14 % of genes had low expression and thus removed for downstream analyses.</code></pre>
+<pre class="r"><code>kable_head(dge_filtered$counts, caption = &quot;Snapshot of Filtered Count Matrix&quot;) </code></pre>
+<table style="width:100%;">
+<caption><strong>Table 6.</strong> Snapshot of Filtered Count
+Matrix</caption>
+<colgroup>
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">D1 CD14 Neg C</th>
+<th align="right">D1 CD14 miR-155</th>
+<th align="right">D2 CD14 Neg C</th>
+<th align="right">D2 CD14 miR-155</th>
+<th align="right">D3 CD14 Neg C</th>
+<th align="right">D3 CD14 miR-155</th>
+<th align="right">D4 CD14 Neg C</th>
+<th align="right">D4 CD14 miR-155</th>
+<th align="right">D5 CD14 Neg C</th>
+<th align="right">D5 CD14 miR-155</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000000419</td>
+<td align="right">795</td>
+<td align="right">551</td>
+<td align="right">633</td>
+<td align="right">519</td>
+<td align="right">557</td>
+<td align="right">651</td>
+<td align="right">568</td>
+<td align="right">539</td>
+<td align="right">621</td>
+<td align="right">535</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000457</td>
+<td align="right">328</td>
+<td align="right">291</td>
+<td align="right">381</td>
+<td align="right">318</td>
+<td align="right">290</td>
+<td align="right">354</td>
+<td align="right">428</td>
+<td align="right">380</td>
+<td align="right">435</td>
+<td align="right">490</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000460</td>
+<td align="right">128</td>
+<td align="right">120</td>
+<td align="right">151</td>
+<td align="right">136</td>
+<td align="right">132</td>
+<td align="right">168</td>
+<td align="right">153</td>
+<td align="right">133</td>
+<td align="right">201</td>
+<td align="right">184</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000938</td>
+<td align="right">8771</td>
+<td align="right">11903</td>
+<td align="right">11542</td>
+<td align="right">10888</td>
+<td align="right">7209</td>
+<td align="right">10837</td>
+<td align="right">9394</td>
+<td align="right">7463</td>
+<td align="right">9590</td>
+<td align="right">9248</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000001036</td>
+<td align="right">1150</td>
+<td align="right">902</td>
+<td align="right">1358</td>
+<td align="right">1156</td>
+<td align="right">931</td>
+<td align="right">1274</td>
+<td align="right">877</td>
+<td align="right">863</td>
+<td align="right">1400</td>
+<td align="right">1269</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000001084</td>
+<td align="right">1452</td>
+<td align="right">1057</td>
+<td align="right">2572</td>
+<td align="right">2894</td>
+<td align="right">3163</td>
+<td align="right">4104</td>
+<td align="right">1774</td>
+<td align="right">1880</td>
+<td align="right">1649</td>
+<td align="right">1652</td>
+</tr>
+</tbody>
+</table>
 <pre class="r"><code># create a subset of the gene mappings
 count_mappings_filtered &lt;- count_mappings[count_mappings$ensembl_gene_id %in% rownames(dge_filtered$counts), ] </code></pre>
-<pre class="r"><code>dge_filtered &lt;- edgeR::calcNormFactors(dge_filtered, method = &quot;TMM&quot;)
+</div>
+<div id="apply-normalization" class="section level3">
+<h3>3.4 Apply Normalization</h3>
+<p>TODO:</p>
+<ul>
+<li>which normalization method and why?</li>
+</ul>
+<pre class="r"><code># TODO: create plot of data pre-normalization
+dge_filtered &lt;- edgeR::calcNormFactors(dge_filtered, method = &quot;TMM&quot;)
 dge_filtered$samples</code></pre>
 <pre><code>##                 group lib.size norm.factors         samples cell_line condition
 ## D1 CD14 Neg C       1 27713828    1.1474152   D1 CD14 Neg C      CD14   Control
@@ -2060,6 +2603,7 @@ dge_filtered$samples</code></pre>
 ## D4 CD14 miR-155     1 26200669    0.9828141 D4 CD14 miR-155      CD14    miR155
 ## D5 CD14 Neg C       1 28508609    1.0500455   D5 CD14 Neg C      CD14   Control
 ## D5 CD14 miR-155     1 28829147    1.0142721 D5 CD14 miR-155      CD14    miR155</code></pre>
+<pre class="r"><code># TODO: create plot of data post-normalization</code></pre>
 <pre class="r"><code>current_colors &lt;- RColorBrewer::brewer.pal(n = length(unique(meta_df$condition)), &quot;Set2&quot;)
 names(current_colors) &lt;- levels(factor(meta_df$condition))
 
@@ -2080,12 +2624,144 @@ legend(&quot;topright&quot;,
 summary(as.vector(lcpm))</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ## -4.7379  0.6887  3.4153  3.2277  5.5310 14.7061</code></pre>
+<p>Below is the final normalized expression set with HUGO symbol
+annotations, as required by the assignment:</p>
+<pre class="r"><code># TODO: normalize it
+kable_head(dge_filtered$counts, caption = &quot;Snapshot of Filtered Count Matrix&quot;) </code></pre>
+<table style="width:100%;">
+<caption><strong>Table 7.</strong> Snapshot of Filtered Count
+Matrix</caption>
+<colgroup>
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">D1 CD14 Neg C</th>
+<th align="right">D1 CD14 miR-155</th>
+<th align="right">D2 CD14 Neg C</th>
+<th align="right">D2 CD14 miR-155</th>
+<th align="right">D3 CD14 Neg C</th>
+<th align="right">D3 CD14 miR-155</th>
+<th align="right">D4 CD14 Neg C</th>
+<th align="right">D4 CD14 miR-155</th>
+<th align="right">D5 CD14 Neg C</th>
+<th align="right">D5 CD14 miR-155</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000000419</td>
+<td align="right">795</td>
+<td align="right">551</td>
+<td align="right">633</td>
+<td align="right">519</td>
+<td align="right">557</td>
+<td align="right">651</td>
+<td align="right">568</td>
+<td align="right">539</td>
+<td align="right">621</td>
+<td align="right">535</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000457</td>
+<td align="right">328</td>
+<td align="right">291</td>
+<td align="right">381</td>
+<td align="right">318</td>
+<td align="right">290</td>
+<td align="right">354</td>
+<td align="right">428</td>
+<td align="right">380</td>
+<td align="right">435</td>
+<td align="right">490</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000460</td>
+<td align="right">128</td>
+<td align="right">120</td>
+<td align="right">151</td>
+<td align="right">136</td>
+<td align="right">132</td>
+<td align="right">168</td>
+<td align="right">153</td>
+<td align="right">133</td>
+<td align="right">201</td>
+<td align="right">184</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000938</td>
+<td align="right">8771</td>
+<td align="right">11903</td>
+<td align="right">11542</td>
+<td align="right">10888</td>
+<td align="right">7209</td>
+<td align="right">10837</td>
+<td align="right">9394</td>
+<td align="right">7463</td>
+<td align="right">9590</td>
+<td align="right">9248</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000001036</td>
+<td align="right">1150</td>
+<td align="right">902</td>
+<td align="right">1358</td>
+<td align="right">1156</td>
+<td align="right">931</td>
+<td align="right">1274</td>
+<td align="right">877</td>
+<td align="right">863</td>
+<td align="right">1400</td>
+<td align="right">1269</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000001084</td>
+<td align="right">1452</td>
+<td align="right">1057</td>
+<td align="right">2572</td>
+<td align="right">2894</td>
+<td align="right">3163</td>
+<td align="right">4104</td>
+<td align="right">1774</td>
+<td align="right">1880</td>
+<td align="right">1649</td>
+<td align="right">1652</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># TODO: save it as object or smth locally &gt; don&#39;t push to git</code></pre>
 </div>
 </div>
 <div id="differential-expression-analysis" class="section level2">
 <h2>4 Differential Expression Analysis</h2>
-<p>I will now conduct differential expression analysis using the
+<p>Then I conducted differential expression analysis using the
 recommended quasi-likelihood pipeline from <code>edgeR</code> (<span class="citation">Chen et al. (<a href="#ref-chen_reads_2016">2016</a>)</span>).</p>
+<p>TODO:</p>
+<ul>
+<li>define model design for DE analysis: revisit MDS plot (above) to
+demonstrate choice of factors in model</li>
+<li>Calculate p-values for each of the genes in your expression set. How
+many genes were significantly differentially expressed? What thresholds
+did you use and why?</li>
+<li>Multiple hypothesis testing - correct your p-values using a multiple
+hypothesis correction method. Which method did you use? And Why? How
+many genes passed correction?</li>
+<li>Show the amount of differentially expressed genes using an MA Plot
+or a Volcano plot. Highlight genes of interest.</li>
+<li>Visualize your top hits using a heatmap. Do you conditions cluster
+together? Explain why or why not.</li>
+</ul>
 <pre class="r"><code>cat(&quot;Data design condition variable names: &quot;, colnames(design))</code></pre>
 <pre><code>## Data design condition variable names:  conditionControl conditionmiR155</code></pre>
 <pre class="r"><code># Contrasts
@@ -2104,7 +2780,7 @@ fit &lt;- edgeR::glmQLFit(edge, design)</code></pre>
 dge_results &lt;- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %&gt;% tibble::rownames_to_column(&quot;ensembl_id&quot;)
 kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;) # TODO:make sure it renders decently/pretty</code></pre>
 <table>
-<caption><strong>Table 3.</strong> Preview of top DE genes</caption>
+<caption><strong>Table 8.</strong> Preview of top DE genes</caption>
 <thead>
 <tr class="header">
 <th align="left">ensembl_id</th>
@@ -2355,7 +3031,13 @@ to current HUGO symbols?</a></li>
 <li><a href="#q6">Were there any outliers in your dataset? How were they
 handled in the originating paper? How many outliers were
 removed?</a></li>
-<li><a href="#q7">How did you handle replicates?</a></li>
+</ol>
+<p>In the original paper, there is no explicit mention of outliers being
+removed from the dataset.</p>
+<ol start="7" style="list-style-type: decimal">
+<li>How did you handle replicates? handled in <a href="#q7a">gene ID
+duplications</a> and <a href="#q7b">expression duplicates across
+samples</a></li>
 <li><a href="#q8">What is the final coverage of your dataset?</a></li>
 </ol>
 <p>Additional “rough work”/trial code and reflections can be found <a href="https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-5-%E2%80%90-Assignment-1">here</a>.</p>

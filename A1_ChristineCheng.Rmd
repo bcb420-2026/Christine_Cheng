@@ -308,13 +308,6 @@ dup_samples <- final_counts[, c(FALSE, FALSE, duplicated(as.list(final_counts[, 
 cat("\nUnique expression values between samples? ", ncol(dup_samples) == 0)
 ```
 
-### 2.4 Data Trimming
-
-```{r}
-# TODO: remove outliers, if applicable
-  # if there's reason to believe measurement error has occured > discard outlier
-```
-
 ## 3 Data filtering and normalization
 
 This next section describes the steps taken to prepare the dataset for differential expression analysis, specifically using `edgeR`.
@@ -387,14 +380,23 @@ count_mappings_filtered <- count_mappings[count_mappings$ensembl_gene_id %in% ro
 
 ### 3.4 Apply Normalization
 
-Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization on the cleaned and filtered count data (@robinson_scaling_2010). I used the TMM method via `edgeR` since it is preferred for RNA-seq as it accounts for compositional differences between libraries (@dawadi_bench_2025).
+Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization on the cleaned and filtered count data (@robinson_scaling_2010). I used the TMM method via `edgeR` since it is preferred for RNA-seq as it accounts for compositional differences between libraries (@dawadi_bench_2025). Below are two plots, first before normalization and second after.
 
 ```{r normalization}
-# TODO: create plot of data pre-normalization
+# plot of data pre-normalization
+log_counts_pre <- edgeR::cpm(dge, log = TRUE)
+plot(density(log_counts_pre[,1]), col = "red", main = "Density: Pre vs Post Normalization", lwd = 2)
+for(i in 2:ncol(log_counts_pre)){ lines(density(log_counts_pre[,i]), col = "red", lty = 2) }
+log_counts_pre
+
 dge_filtered <- edgeR::calcNormFactors(dge_filtered, method = "TMM")
 dge_filtered$samples
 
-# TODO: create plot of data post-normalization
+# plot of data post-normalization
+log_counts_post <- edgeR::cpm(dge_filtered, log = TRUE)
+for(i in 1:ncol(log_counts_post)){ lines(density(log_counts_post[,i]), col = "blue") }
+legend("topright", legend = c("Pre-Norm", "Post-Norm"), col = c("red", "blue"), lty = 1)
+log_counts_post
 ```
 
 ```{r MDS_plot}
@@ -412,7 +414,6 @@ legend("topright",
   pch = 16,
   bty = "n"
 )
-# TODO: add caption
 ```
 
 ```{r log_CPM}
@@ -420,26 +421,9 @@ lcpm <- edgeR::cpm(dge_filtered, log = TRUE, prior.count = 1)
 summary(as.vector(lcpm))
 ```
 
-Below is the final normalized expression set with HUGO symbol annotations, as required by the assignment:
-
-```{r normalized_counts}
-# TODO: normalize it
-kable_head(dge_filtered$counts, caption = "Snapshot of Filtered Count Matrix") 
-
-# TODO: save it as object or smth locally > don't push to git
-```
-
 ## 4 Differential Expression Analysis
 
 Then I conducted differential expression analysis using the recommended quasi-likelihood pipeline from `edgeR` (@chen_reads_2016).
-
-TODO:
-
--   define model design for DE analysis: revisit MDS plot (above) to demonstrate choice of factors in model
--   Calculate p-values for each of the genes in your expression set. How many genes were significantly differentially expressed? What thresholds did you use and why?
--   Multiple hypothesis testing - correct your p-values using a multiple hypothesis correction method. Which method did you use? And Why? How many genes passed correction?
--   Show the amount of differentially expressed genes using an MA Plot or a Volcano plot. Highlight genes of interest.
--   Visualize your top hits using a heatmap. Do you conditions cluster together? Explain why or why not.
 
 ```{r dge_setup}
 cat("Data design condition variable names: ", colnames(design))
@@ -457,13 +441,12 @@ fit <- edgeR::glmQLFit(edge, design)
 
 ```{r bcv_plot}
 plotBCV(edge)
-# TODO: add caption
 ```
 
 ```{r dge_test}
 miR155_vs_Ctrl <- edgeR::glmQLFTest(fit, contrast = contr)
 dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>% tibble::rownames_to_column("ensembl_id")
-kable_head(dge_results, caption = "Preview of top DE genes") # TODO:make sure it renders decently/pretty
+kable_head(dge_results, caption = "Preview of top DE genes")
 ```
 
 ```{r volcano_plot}
@@ -478,9 +461,7 @@ ggplot2::ggplot(volcano_df,
     title = "miR155 VS Neg. Ctrl",
     x = "log2 fold-change",
     y = "-log10(p-value)"
-    # TODO: rename legend title
   )
-# TODO: add caption
 ```
 
 ```{r volcano_plot2}
@@ -511,7 +492,6 @@ ggplot2::ggplot(dge_results2, ggplot2::aes(x = logFC, y = neglog10P)) +
     y = "-log10(p-value)",
     color = NULL
   )
-# TODO: add caption
 ```
 
 ```{r top_degs}
@@ -626,7 +606,7 @@ ComplexHeatmap::Heatmap(
 )
 
 ComplexHeatmap::Heatmap(
-  hm_z[1:25,], # TODO: Is this the correct way to add the top 25?
+  hm_z[1:25,],
   col = col_fun,
   top_annotation = ha,
   show_row_names = TRUE,         # <-- now shows HGNC symbols
@@ -637,8 +617,15 @@ ComplexHeatmap::Heatmap(
   row_title = paste0("Top ", nrow(hm_z), " genes (miR155 VS Neg. Ctrl)"),
   column_title = "Samples"
 )
-# TODO: fix heatmap formatting + add captions
 ```
+
+#### {#q8}
+Final coverage of the dataset:
+
+```{r}
+cat("The final dataset, after filtering lowly expressed genes, contains ", nrow(dge_filtered) , " genes across 10 samples")
+```
+This can be considered a robust coverage of the human protein-coding transcriptome suitable for pathway analysis.
 
 ## 5 Discussion
 
@@ -657,20 +644,3 @@ In the original paper, there is no explicit mention of outliers being removed fr
 Additional "rough work"/trial code and reflections can be found [here](https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-5-%E2%80%90-Assignment-1).
 
 ## 6 References
-
-```{r, include=FALSE, echo=FALSE}
-# TODO: generate citation bib
-print(citation("rmarkdown"), bibtex=TRUE)
-print(citation("knitr"), bibtex=TRUE)
-citation("BiocManager")
-citation("GEOquery")
-citation("dplyr")
-print(citation("biomaRt"), bibtex=TRUE)
-
-# citation("SummarizedExperiment")  # TODO: if using data from getRNASeqData
-citation("readr") # TODO: if reading raw counts file from getGEOSuppFiles
-citation("edgeR")
-citation("tibble")
-citation("ggplot2")
-print(citation("ComplexHeatmap"), bibtex = TRUE)
-```

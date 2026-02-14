@@ -37,7 +37,7 @@ kable_head <- kable_head_helper()
 
 This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. The workflow follows best practices for RNA-seq analysis as outlined by (@dawadi_bench_2025).
 
-### 1.1 Dataset Selection {#q1}
+### 1.1 Dataset Selection
 
 The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605) from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates the transcriptional responses of healthy human CD14+ monocytes. Specifically, it analyzes the transcriptomic effect of microRNA *miR-155* overexpression compared to a negative control (@olsson_mir-155-overexpressing_2022).
 
@@ -380,24 +380,23 @@ count_mappings_filtered <- count_mappings[count_mappings$ensembl_gene_id %in% ro
 
 ### 3.4 Apply Normalization
 
-Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization on the cleaned and filtered count data (@robinson_scaling_2010). I used the TMM method via `edgeR` since it is preferred for RNA-seq as it accounts for compositional differences between libraries (@dawadi_bench_2025). Below are two plots, first before normalization and second after.
+Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization on the cleaned and filtered count data (@robinson_scaling_2010). I used the TMM method via `edgeR` since it is preferred for RNA-seq as it accounts for compositional differences between libraries (@dawadi_bench_2025). The plot below compares pre- vs post-normalization:
 
 ```{r normalization}
-# plot of data pre-normalization
-log_counts_pre <- edgeR::cpm(dge, log = TRUE)
-plot(density(log_counts_pre[,1]), col = "red", main = "Density: Pre vs Post Normalization", lwd = 2)
-for(i in 2:ncol(log_counts_pre)){ lines(density(log_counts_pre[,i]), col = "red", lty = 2) }
-log_counts_pre
-
 dge_filtered <- edgeR::calcNormFactors(dge_filtered, method = "TMM")
 dge_filtered$samples
 
-# plot of data post-normalization
+# plot of data comparing pre-/post-normalization
+log_counts_pre <- edgeR::cpm(dge, log = TRUE)
+plot(density(log_counts_pre[,1]), col = "red", main = "Density: Pre vs Post Normalization", lwd = 2)
+for(i in 2:ncol(log_counts_pre)){ lines(density(log_counts_pre[,i]), col = "red", lty = 2) }
+
 log_counts_post <- edgeR::cpm(dge_filtered, log = TRUE)
 for(i in 1:ncol(log_counts_post)){ lines(density(log_counts_post[,i]), col = "blue") }
 legend("topright", legend = c("Pre-Norm", "Post-Norm"), col = c("red", "blue"), lty = 1)
-log_counts_post
 ```
+
+Below is an MDS plot for visualization:
 
 ```{r MDS_plot}
 current_colors <- RColorBrewer::brewer.pal(n = length(unique(meta_df$condition)), "Set2")
@@ -414,11 +413,6 @@ legend("topright",
   pch = 16,
   bty = "n"
 )
-```
-
-```{r log_CPM}
-lcpm <- edgeR::cpm(dge_filtered, log = TRUE, prior.count = 1)
-summary(as.vector(lcpm))
 ```
 
 ## 4 Differential Expression Analysis

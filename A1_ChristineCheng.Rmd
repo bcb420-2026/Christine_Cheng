@@ -10,7 +10,7 @@ output:
     code_folding: hide
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A1") })
-bibliography: A1_files/A1_references.bib    # TODO: insert the citations/bibliography file
+bibliography: A1_files/A1_references.bib
 link-citations: true            # this is for the citations/bibliography 
 nocite: '@*'
 ---
@@ -22,11 +22,6 @@ knitr::opts_chunk$set(echo = TRUE,
                       knitr.kable.max_rows = 6)
 
 # helper function to present formatted data table previews (default: 6 rows)
-# TODO: remove
-# kable_head <- function(x, n = 6, caption = NULL) {  
-#   knitr::kable(utils::head(x, n), caption = caption)
-# }
-
 kable_head_helper <- function() {
   i <- 0
   function(x, n = 6, caption = NULL) {
@@ -48,12 +43,6 @@ The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.c
 
 #### {#q1}
 This dataset is of interest because *miR-155* is a critical regulator of immune function and inflammation and has been shown to induce transcriptomic changes mimicking that of macrophages in rheumatoid arthritis (RA). Understanding its downstream targets in monocytes can reveal mechanisms of innate and adaptive immune responses in RA pathogenesis. Transcriptomic profiling of this dataset can reveal a link between microRNA dysregulation and pathogenic macrophage phenotypes. Findings regarding downstream *miR-155* targets has great potential for the identification of therapeutic checkpoints that drive chronic join inflammation. (@olsson_mir-155-overexpressing_2022) I chose this dataset due to the applicability of this dataset's findings to potential therapeutics of a chronic disease, as this sort of analysis falls within my research interests of using computational tools for medical advances.
-
-TODO:
-
--   make sure the coverage is as complete as possible: experiments that measure expression for only a small subset of genes are not suitable
--   make sure the dataset originates from a high-quality experiment: should be performed with biological replicates (the more the better)
-    -   experiments should be performed with mature experimental platforms, according to best-practice procedures =\> recent (within 10 years) experiments
 
 A detailed account of the dataset discovery process is documented separately [here](https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-4-%E2%80%90-Dataset-Selection-(2.3)).
 
@@ -164,12 +153,6 @@ raw_counts <- readr::read_tsv(counts_file, show_col_types = FALSE)
 kable_head(raw_counts, caption = "Snapshot of Raw Count Data from GEO") 
 ```
 
-```{r}
-# TODO: journal entry
-# sanity check: gene IDs are Ensembl IDs
-# all(grepl("^ENSG", raw_counts[[1]]))
-```
-
 ### 2.2 Data Processing & Gene ID Mapping
 
 Before using the raw counts for downstream analyses, I performed some basic processing and data cleaning. From the raw counts matrix, the 'Gene name' column was dropped and the Ensembl ID version numbers were stripped from th 'GeneID' column (which was also renamed to ensembl_gene_id for increased variable descriptiveness and easier downstream ID mapping).
@@ -194,8 +177,6 @@ kable_head(counts, caption = "Snapshot of Processed Count Matrix")
 
 Although the original count matrix contains gene names that resemble HGNC gene symbols, they were re-mapped to represent the most up-to-date gene annotations between the Ensembl and HUGO databases:
 
-TODO: verify ID mapping /w provided 'Gene name'
-
 ```{r id_map}
 ensembl <- biomaRt::useMart("ensembl", dataset = "hsapiens_gene_ensembl") # using latest Human Genes mart
 
@@ -215,52 +196,6 @@ kable_head(ids_map, caption = "Preview of gene ID mapping between Ensembl IDs an
 
 Upon exploring the mapping between gene IDs, duplicate Ensembl IDs were discovered. This likely resulted from the version number stripping step. Through various troubleshooting steps (detailed [here](https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-5-%E2%80%90-Assignment-1#user-content-Troubleshooting_Ensembl_IDs_duplication)), I was able to verify that the duplication originated from BioMart mapping 2 different HGNC symbols to the same stripped Ensembl ID.
 
-TODO: reasoning on why this 2-to-1 mapping may have occured and why it is okay to do what I did to address the issue
-
-TODO: insert short block of code displaying the duplicate (?)
-
-```{r}
-# TODO: journal entry
-# mapped_counts <- counts %>%
-#   dplyr::left_join(ids_map, by = "ensembl_gene_id") %>%
-#   dplyr::select(ensembl_gene_id,hgnc_symbol, everything())
-
-# # found  duplicate Ensembl IDs
-# duplicates <- mapped_counts %>%
-#   dplyr::group_by(ensembl_gene_id) %>%
-#   dplyr::filter(n() > 1) %>%
-#   dplyr::arrange(ensembl_gene_id)
-# 
-# View(duplicates)
-# 
-# duplicate_summary <- mapped_counts %>%
-#   dplyr::count(ensembl_gene_id) %>%
-#   dplyr::filter(n > 1)
-# 
-# View(duplicate_summary)
-# 
-# id_conflicts <- mapped_counts %>%
-#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
-#   dplyr::filter(n() > 1)
-# 
-# View(id_conflicts)
-# 
-# missing_gene <- setdiff(
-#   unique(duplicate_summary$ensembl_gene_id), 
-#   unique(id_conflicts$ensembl_gene_id)
-# )
-# 
-# duplicates[duplicates$ensembl_gene_id == missing_gene, ] # same stripped Ensembl ID mapped to 2 different HGNC symbols!
-# 
-# raw_counts[raw_counts$GeneID == missing_gene, ] # raw counts doesn't have duplicated `missing_gene`!
-# 
-# # after running just:
-# # mapped_counts <- counts %>%
-# # +   dplyr::left_join(ids_map, by = "ensembl_gene_id")
-# # mapped_counts already has the duplicated `missing_gene` -> BioMart mapping must be the issue
-# ids_map[ids_map$ensembl_gene_id == missing_gene, ] # confirms that BioMart mapped two different HGNC symbols to the same Ensembl ID
-```
-
 To address the issue, I first collapsed the gene ID map so that each Ensembl ID only appears once. For Ensembl IDs mapped to more than one HUGO symbol, I concatenated the HGNC symbols together on the row corresponding to the Ensembl ID. The expression data matrix is then joined with this collapsed ID map. This way, gene mapping data isn't lost and the final mapped counts matrix has unique row names (which is necessary for downstream analyses).
 
 ```{r id_mapping}
@@ -272,32 +207,6 @@ ids_map_unique <- ids_map %>%
 # 2. Join counts matrix with the collapsed ID map
 mapped_counts_fixed <- counts %>%
   dplyr::left_join(ids_map_unique, by = "ensembl_gene_id")
-```
-
-```{r}
-# TODO: journal entry - verification of one-to-one gene ID mapping
-# duplicates1 <- mapped_counts_fixed %>%
-#   dplyr::group_by(ensembl_gene_id) %>%
-#   dplyr::filter(n() > 1) %>%
-#   dplyr::arrange(ensembl_gene_id)
-# 
-# View(duplicates1)
-# 
-# duplicate_summary1 <- mapped_counts_fixed %>%
-#   dplyr::count(ensembl_gene_id) %>%
-#   dplyr::filter(n > 1)
-# 
-# View(duplicate_summary1)
-# 
-# id_conflicts1 <- mapped_counts_fixed %>%
-#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
-#   dplyr::filter(n() > 1)
-# 
-# View(id_conflicts1)
-# 
-# nrow(duplicates1) == nrow(duplicate_summary1)*2
-# nrow(duplicate_summary1)*2 == nrow(id_conflicts1)
-# #fixed :)
 ```
 
 I then checked the final mapped counts to ensure there's no more mis-mapping between Ensemble and HGNC:
@@ -354,18 +263,11 @@ cat("All rows mapped to HGNC symbol? ", !unmapped)
 Instead of removing any genes for both these cases, the unique Ensembl IDs will be kept as a stable reference while the HGNC symbols (including duplicates and un-mapped) are kept as annotations:
 
 ```{r counts_objs}
-# TODO: journal entry
-# rownames(final_counts) <- final_counts$ensembl_gene_id # added rownames (succesfully)
-# BUT, no matter which method, I can't get the rownames to stay:
-# final_counts$ensembl_gene_id <- NULL
-# final_counts <- dplyr::select(final_counts, !(ensembl_gene_id))
-# final_counts <- final_counts %>% dplyr::select( -ensembl_gene_id)
-# SOLUTION:
 final_counts <- mapped_counts_fixed %>%
   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %>%
-  dplyr::summarise(dplyr::across(tidyr::starts_with("D"), sum)) %>% # results in tibble, that loses (temporary attached) rownames once another operation is applied on it
+  dplyr::summarise(dplyr::across(tidyr::starts_with("D"), sum)) %>%
   dplyr::ungroup() %>%
-  as.data.frame() # need to convert to standard data.frame here
+  as.data.frame()
 
 kable_head(final_counts, caption = "Preview of Annotated Count Matrix") 
 ```
@@ -421,10 +323,6 @@ cat("Valid count matrix values? ", valid_counts)
 # check that no expression values are negative or NA
 edger_precon <- all(sapply(final_counts, function(x) all(!is.na(x) & x >= 0 & x %% 1 == 0)))
 cat("\nFinal count matrix meets input preconditions? ", edger_precon)
-
-# TODO: is this necessary???
-# final_counts1 <- as.matrix(final_counts)
-# storage.mode(final_counts1[, 2:ncol(final_counts1)]) <- "integer"
 ```
 
 ### 3.2 Preparing Metadata
@@ -437,24 +335,12 @@ samples <- colnames(final_counts)
 cell_line <- unlist(lapply(samples,
                           FUN = function(x){unlist(strsplit(x,split = " "))[2]}))       
 
-# TODO: remove
-# treatment <- unlist(lapply(samples,FUN = 
-#                              function(x){unlist(strsplit(x,split = " "))[3]}))     
-
 is_control <- ifelse(grepl("Neg", samples, ignore.case = TRUE), "Control", "miR155")
 condition = factor(is_control, levels = c("Control", "miR155"))
 
 meta_df <- data.frame(samples, cell_line, condition)
 
 kable_head(meta_df, n = 10, caption = "Sample Metadata")
-```
-
-```{r save_data}
-# TODO: do i need?
-# saveRDS(list(counts = final_counts,
-#              meta = meta_df,
-#              mappings = count_mappings),
-#         file = "A1_files/counts_and_metadata.rds")
 ```
 
 ### 3.3 Data filtering
@@ -484,6 +370,8 @@ count_mappings_filtered <- count_mappings[count_mappings$ensembl_gene_id %in% ro
 ```
 
 ### 3.4 Apply Normalization
+
+Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization (@robinson_scaling_2010) on the cleaned and filtered count data.
 
 TODO:
 

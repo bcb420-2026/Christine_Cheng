@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christine En-Tse Cheng" />
 
-<meta name="date" content="2026-02-13" />
+<meta name="date" content="2026-02-14" />
 
 <title>A1 - Dataset Selection, Cleaning, Normalization, and Differential Gene Expression</title>
 
@@ -1592,7 +1592,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">A1 - Dataset Selection, Cleaning,
 Normalization, and Differential Gene Expression</h1>
 <h4 class="author">Christine En-Tse Cheng</h4>
-<h4 class="date">2026-02-13</h4>
+<h4 class="date">2026-02-14</h4>
 
 </div>
 
@@ -1628,19 +1628,6 @@ chose this dataset due to the applicability of this dataset’s findings
 to potential therapeutics of a chronic disease, as this sort of analysis
 falls within my research interests of using computational tools for
 medical advances.</p>
-<p>TODO:</p>
-<ul>
-<li>make sure the coverage is as complete as possible: experiments that
-measure expression for only a small subset of genes are not
-suitable</li>
-<li>make sure the dataset originates from a high-quality experiment:
-should be performed with biological replicates (the more the better)
-<ul>
-<li>experiments should be performed with mature experimental platforms,
-according to best-practice procedures =&gt; recent (within 10 years)
-experiments</li>
-</ul></li>
-</ul>
 <p>A detailed account of the dataset discovery process is documented
 separately <a href="https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-4-%E2%80%90-Dataset-Selection-(2.3)">here</a>.</p>
 </div>
@@ -1693,7 +1680,7 @@ present locally in designated data files directory.</p>
 data_dir &lt;- &quot;A1_files&quot;  # sub-directory for all A1 files
 
 # checking for existence of directory for storing data files
-if (!dir.exists(data_dir))
+if (!dir.exists(data_dir)) 
   dir.create(data_dir)
 
 counts_file &lt;- file.path(data_dir, &quot;GSE166605_D1-5_Neg_C_miR_155_RAW_counts.txt.gz&quot;)
@@ -1830,9 +1817,6 @@ GEO</caption>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code># TODO: journal entry
-# sanity check: gene IDs are Ensembl IDs
-# all(grepl(&quot;^ENSG&quot;, raw_counts[[1]]))</code></pre>
 </div>
 <div id="data-processing-gene-id-mapping" class="section level3">
 <h3>2.2 Data Processing &amp; Gene ID Mapping</h3>
@@ -1852,7 +1836,7 @@ counts &lt;- raw_counts %&gt;%
   as.data.frame()
 
 # strip Ensemble ID version numbers
-counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id)
+counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id) 
 
 kable_head(counts, caption = &quot;Snapshot of Processed Count Matrix&quot;) </code></pre>
 <table style="width:100%;">
@@ -1972,7 +1956,6 @@ Matrix</caption>
 <p>Although the original count matrix contains gene names that resemble
 HGNC gene symbols, they were re-mapped to represent the most up-to-date
 gene annotations between the Ensembl and HUGO databases:</p>
-<p>TODO: verify ID mapping /w provided ‘Gene name’</p>
 <pre class="r"><code>ensembl &lt;- biomaRt::useMart(&quot;ensembl&quot;, dataset = &quot;hsapiens_gene_ensembl&quot;) # using latest Human Genes mart
 
 # create mapping between Ensembl IDs and HGNC gene symbols
@@ -2029,48 +2012,6 @@ were discovered. This likely resulted from the version number stripping
 step. Through various troubleshooting steps (detailed <a href="https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-5-%E2%80%90-Assignment-1#user-content-Troubleshooting_Ensembl_IDs_duplication">here</a>),
 I was able to verify that the duplication originated from BioMart
 mapping 2 different HGNC symbols to the same stripped Ensembl ID.</p>
-<p>TODO: reasoning on why this 2-to-1 mapping may have occured and why
-it is okay to do what I did to address the issue</p>
-<p>TODO: insert short block of code displaying the duplicate (?)</p>
-<pre class="r"><code># TODO: journal entry
-# mapped_counts &lt;- counts %&gt;%
-#   dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;) %&gt;%
-#   dplyr::select(ensembl_gene_id,hgnc_symbol, everything())
-
-# # found  duplicate Ensembl IDs
-# duplicates &lt;- mapped_counts %&gt;%
-#   dplyr::group_by(ensembl_gene_id) %&gt;%
-#   dplyr::filter(n() &gt; 1) %&gt;%
-#   dplyr::arrange(ensembl_gene_id)
-#
-# View(duplicates)
-#
-# duplicate_summary &lt;- mapped_counts %&gt;%
-#   dplyr::count(ensembl_gene_id) %&gt;%
-#   dplyr::filter(n &gt; 1)
-#
-# View(duplicate_summary)
-#
-# id_conflicts &lt;- mapped_counts %&gt;%
-#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
-#   dplyr::filter(n() &gt; 1)
-#
-# View(id_conflicts)
-#
-# missing_gene &lt;- setdiff(
-#   unique(duplicate_summary$ensembl_gene_id),
-#   unique(id_conflicts$ensembl_gene_id)
-# )
-#
-# duplicates[duplicates$ensembl_gene_id == missing_gene, ] # same stripped Ensembl ID mapped to 2 different HGNC symbols!
-#
-# raw_counts[raw_counts$GeneID == missing_gene, ] # raw counts doesn&#39;t have duplicated `missing_gene`!
-#
-# # after running just:
-# # mapped_counts &lt;- counts %&gt;%
-# # +   dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;)
-# # mapped_counts already has the duplicated `missing_gene` -&gt; BioMart mapping must be the issue
-# ids_map[ids_map$ensembl_gene_id == missing_gene, ] # confirms that BioMart mapped two different HGNC symbols to the same Ensembl ID</code></pre>
 <p>To address the issue, I first collapsed the gene ID map so that each
 Ensembl ID only appears once. For Ensembl IDs mapped to more than one
 HUGO symbol, I concatenated the HGNC symbols together on the row
@@ -2086,29 +2027,6 @@ ids_map_unique &lt;- ids_map %&gt;%
 # 2. Join counts matrix with the collapsed ID map
 mapped_counts_fixed &lt;- counts %&gt;%
   dplyr::left_join(ids_map_unique, by = &quot;ensembl_gene_id&quot;)</code></pre>
-<pre class="r"><code># TODO: journal entry - verification of one-to-one gene ID mapping
-# duplicates1 &lt;- mapped_counts_fixed %&gt;%
-#   dplyr::group_by(ensembl_gene_id) %&gt;%
-#   dplyr::filter(n() &gt; 1) %&gt;%
-#   dplyr::arrange(ensembl_gene_id)
-#
-# View(duplicates1)
-#
-# duplicate_summary1 &lt;- mapped_counts_fixed %&gt;%
-#   dplyr::count(ensembl_gene_id) %&gt;%
-#   dplyr::filter(n &gt; 1)
-#
-# View(duplicate_summary1)
-#
-# id_conflicts1 &lt;- mapped_counts_fixed %&gt;%
-#   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
-#   dplyr::filter(n() &gt; 1)
-#
-# View(id_conflicts1)
-#
-# nrow(duplicates1) == nrow(duplicate_summary1)*2
-# nrow(duplicate_summary1)*2 == nrow(id_conflicts1)
-# #fixed :)</code></pre>
 <p>I then checked the final mapped counts to ensure there’s no more
 mis-mapping between Ensemble and HGNC:</p>
 <pre class="r"><code>consistency_check &lt;- mapped_counts_fixed %&gt;%
@@ -2163,18 +2081,11 @@ cat(&quot;All rows mapped to HGNC symbol? &quot;, !unmapped)</code></pre>
 <p>Instead of removing any genes for both these cases, the unique
 Ensembl IDs will be kept as a stable reference while the HGNC symbols
 (including duplicates and un-mapped) are kept as annotations:</p>
-<pre class="r"><code># TODO: journal entry
-# rownames(final_counts) &lt;- final_counts$ensembl_gene_id # added rownames (succesfully)
-# BUT, no matter which method, I can&#39;t get the rownames to stay:
-# final_counts$ensembl_gene_id &lt;- NULL
-# final_counts &lt;- dplyr::select(final_counts, !(ensembl_gene_id))
-# final_counts &lt;- final_counts %&gt;% dplyr::select( -ensembl_gene_id)
-# SOLUTION:
-final_counts &lt;- mapped_counts_fixed %&gt;%
+<pre class="r"><code>final_counts &lt;- mapped_counts_fixed %&gt;%
   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
-  dplyr::summarise(dplyr::across(tidyr::starts_with(&quot;D&quot;), sum)) %&gt;% # results in tibble, that loses (temporary attached) rownames once another operation is applied on it
+  dplyr::summarise(dplyr::across(tidyr::starts_with(&quot;D&quot;), sum)) %&gt;%
   dplyr::ungroup() %&gt;%
-  as.data.frame() # need to convert to standard data.frame here
+  as.data.frame()
 
 kable_head(final_counts, caption = &quot;Preview of Annotated Count Matrix&quot;) </code></pre>
 <table style="width:100%;">
@@ -2313,7 +2224,7 @@ final_counts &lt;- final_counts %&gt;%
 <pre class="r"><code># check for expression value duplicates across samples
 dup_samples &lt;- final_counts[, c(FALSE, FALSE, duplicated(as.list(final_counts[, 3:ncol(final_counts)])))]
 cat(&quot;\nUnique expression values between samples? &quot;, ncol(dup_samples) == 0)</code></pre>
-<pre><code>##
+<pre><code>## 
 ## Unique expression values between samples?  TRUE</code></pre>
 </div>
 </div>
@@ -2349,11 +2260,8 @@ cat(&quot;Valid count matrix values? &quot;, valid_counts)</code></pre>
 <pre class="r"><code># check that no expression values are negative or NA
 edger_precon &lt;- all(sapply(final_counts, function(x) all(!is.na(x) &amp; x &gt;= 0 &amp; x %% 1 == 0)))
 cat(&quot;\nFinal count matrix meets input preconditions? &quot;, edger_precon)</code></pre>
-<pre><code>##
+<pre><code>## 
 ## Final count matrix meets input preconditions?  TRUE</code></pre>
-<pre class="r"><code># TODO: is this necessary???
-# final_counts1 &lt;- as.matrix(final_counts)
-# storage.mode(final_counts1[, 2:ncol(final_counts1)]) &lt;- &quot;integer&quot;</code></pre>
 </div>
 <div id="preparing-metadata" class="section level3">
 <h3>3.2 Preparing Metadata</h3>
@@ -2363,11 +2271,7 @@ is also needed:</p>
 <pre class="r"><code># Sample name format: D# CD14 control/treatment_name
 samples &lt;- colnames(final_counts)
 cell_line &lt;- unlist(lapply(samples,
-                          FUN = function(x){unlist(strsplit(x,split = &quot; &quot;))[2]}))
-
-# TODO: remove
-# treatment &lt;- unlist(lapply(samples,FUN =
-#                              function(x){unlist(strsplit(x,split = &quot; &quot;))[3]}))
+                          FUN = function(x){unlist(strsplit(x,split = &quot; &quot;))[2]}))       
 
 is_control &lt;- ifelse(grepl(&quot;Neg&quot;, samples, ignore.case = TRUE), &quot;Control&quot;, &quot;miR155&quot;)
 condition = factor(is_control, levels = c(&quot;Control&quot;, &quot;miR155&quot;))
@@ -2437,11 +2341,6 @@ kable_head(meta_df, n = 10, caption = &quot;Sample Metadata&quot;)</code></pre>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code># TODO: do i need?
-# saveRDS(list(counts = final_counts,
-#              meta = meta_df,
-#              mappings = count_mappings),
-#         file = &quot;A1_files/counts_and_metadata.rds&quot;)</code></pre>
 </div>
 <div id="data-filtering" class="section level3">
 <h3>3.3 Data filtering</h3>
@@ -2585,6 +2484,10 @@ count_mappings_filtered &lt;- count_mappings[count_mappings$ensembl_gene_id %in%
 </div>
 <div id="apply-normalization" class="section level3">
 <h3>3.4 Apply Normalization</h3>
+<p>Prior to differential expression analysis, I performed Trimmed Mean
+of M-values (TMM) normalization (<span class="citation">Robinson and
+Oshlack (<a href="#ref-robinson_scaling_2010">2010</a>)</span>) on the
+cleaned and filtered count data.</p>
 <p>TODO:</p>
 <ul>
 <li>which normalization method and why?</li>
@@ -2622,7 +2525,7 @@ legend(&quot;topright&quot;,
 <pre class="r"><code># TODO: add caption</code></pre>
 <pre class="r"><code>lcpm &lt;- edgeR::cpm(dge_filtered, log = TRUE, prior.count = 1)
 summary(as.vector(lcpm))</code></pre>
-<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ## -4.7379  0.6887  3.4153  3.2277  5.5310 14.7061</code></pre>
 <p>Below is the final normalized expression set with HUGO symbol
 annotations, as required by the assignment:</p>
@@ -2895,7 +2798,7 @@ map_df &lt;- count_mappings %&gt;%
   ) %&gt;%
   dplyr::distinct(ensembl_id, .keep_all = TRUE)
 
-# Join mapping onto the edgeR results table
+# Join mapping onto the edgeR results table 
 dge_results2_annotated &lt;- dge_results2 %&gt;%
   dplyr::mutate(ensembl_id = as.character(ensembl_id)) %&gt;%
   dplyr::left_join(map_df, by = &quot;ensembl_id&quot;) %&gt;%

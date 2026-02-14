@@ -1,7 +1,7 @@
 ---
 title: "A1 - Dataset Selection, Cleaning, Normalization, and Differential Gene Expression"
 author: "Christine En-Tse Cheng"
-date: "`r Sys.Date()`"
+date: "2026-02-13"
 output:
   html_document:
     toc: true
@@ -35,14 +35,14 @@ kable_head <- kable_head_helper()
 
 ## 1 Introduction
 
-This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. The workflow follows best practices for RNA-seq analysis as outlined by (@dawadi_bench_2025)
+This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. The workflow follows best practices for RNA-seq analysis as outlined by (@dawadi_bench_2025).
 
 ### 1.1 Dataset Selection {#q1}
 
-The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605) from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates the transcriptional responses of healthy human CD14+ monocytes. Specifically, it analyzes the transcriptomic effect of microRNA *miR-155* overexpression compared to a negative control. (@olsson_mir-155-overexpressing_2022) 
+The selected dataset is [GSE166605](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE166605) from the Gene Expression Omnibus (GEO). This RNA-seq dataset investigates the transcriptional responses of healthy human CD14+ monocytes. Specifically, it analyzes the transcriptomic effect of microRNA *miR-155* overexpression compared to a negative control (@olsson_mir-155-overexpressing_2022).
 
 #### {#q1}
-This dataset is of interest because *miR-155* is a critical regulator of immune function and inflammation and has been shown to induce transcriptomic changes mimicking that of macrophages in rheumatoid arthritis (RA). Understanding its downstream targets in monocytes can reveal mechanisms of innate and adaptive immune responses in RA pathogenesis. Transcriptomic profiling of this dataset can reveal a link between microRNA dysregulation and pathogenic macrophage phenotypes. Findings regarding downstream *miR-155* targets has great potential for the identification of therapeutic checkpoints that drive chronic join inflammation. (@olsson_mir-155-overexpressing_2022) I chose this dataset due to the applicability of this dataset's findings to potential therapeutics of a chronic disease, as this sort of analysis falls within my research interests of using computational tools for medical advances.
+This dataset is of interest because *miR-155* is a critical regulator of immune function and inflammation and has been shown to induce transcriptomic changes mimicking that of macrophages in rheumatoid arthritis (RA). Understanding its downstream targets in monocytes can reveal mechanisms of innate and adaptive immune responses in RA pathogenesis. Transcriptomic profiling of this dataset can reveal a link between microRNA dysregulation and pathogenic macrophage phenotypes. Findings regarding downstream *miR-155* targets has great potential for the identification of therapeutic checkpoints that drive chronic join inflammation (@olsson_mir-155-overexpressing_2022). I chose this dataset due to the applicability of this dataset's findings to potential therapeutics of a chronic disease, as this sort of analysis falls within my research interests of using computational tools for medical advances.
 
 A detailed account of the dataset discovery process is documented separately [here](https://github.com/bcb420-2026/Christine_Cheng/wiki/Entry-4-%E2%80%90-Dataset-Selection-(2.3)).
 
@@ -59,7 +59,7 @@ Here are sample high-level facts regarding the dataset and associated study:
 
 ####  {#q2}
 
-The study that generated the RNA-seq dataset studied the transcriptomic effects of *miR-155* overexpression in healthy monocytes against a negative control.The test condition group consists of healthy donor-derived preipheral blood CD14+ monocytes transfected with *miR-155* mimics (synthetic double-stranded RNA molecules that function as mature *miR-155*). The negative control samples consist of healthy donor-derived CD14+ monocytes transfected with a non-targeting control mimic (i.e., a scrambled/random sequence). (@olsson_mir-155-overexpressing_2022)
+The study that generated the RNA-seq dataset studied the transcriptomic effects of *miR-155* overexpression in healthy monocytes against a negative control.The test condition group consists of healthy donor-derived preipheral blood CD14+ monocytes transfected with *miR-155* mimics (synthetic double-stranded RNA molecules that function as mature *miR-155*). The negative control samples consist of healthy donor-derived CD14+ monocytes transfected with a non-targeting control mimic (i.e., a scrambled/random sequence) (@olsson_mir-155-overexpressing_2022).
 
 ####  {#q3}
 
@@ -248,7 +248,7 @@ hgnc_duplication <- length(unique(final_counts$hgnc_symbol)) == nrow(final_count
 cat("All unique HGNC symbols? ", hgnc_duplication)
 ```
 
-Since I plan on conducting differential expression analysis, I will not remove the rows with duplicated HGNC symbol as that may end up accidentally cause non-specific results, like merging **paralogs/homologs** that have similar (but non-identical) Ensembl IDs due to close proximity in the genome, but are annotated as the same gene by HGNC nomenclature. (@TODO: source)
+Since I plan on conducting differential expression analysis, I will not remove the rows with duplicated HGNC symbol as that may end up accidentally cause non-specific results, like merging **paralogs/homologs** that have similar (but non-identical) Ensembl IDs due to close proximity in the genome, but are annotated as the same gene by HGNC nomenclature.
 
 ####  {#q5}
 
@@ -274,15 +274,31 @@ kable_head(final_counts, caption = "Preview of Annotated Count Matrix")
 
 ### 2.3 Exploratory Statistics
 
-```{r}
-# TODO: compute overview statistics to assess data quality for the control and test conditions in dataset
-  # make sure the coverage is as complete as possible: experiments that measure expression for only a small subset of genes are not suitable
-  # make sure the dataset originates from a high-quality experiment: should be performed with biological replicates (the more the better)
+For exploring the data, I first dropped any rows that has 0 expression or NA expression across all samples, if such rows exist. Then I calculated summary statistics for each sample:
 
+```{r exploratory_stats}
 # drop any rows that have 0 expression or NA expression across all samples
 final_counts <- final_counts %>%
   dplyr::filter(dplyr::if_any(-c(1, 2), ~ !is.na(.x) & .x != 0))
+
+# calculate summary statistics per sample
+sample_summary <- data.frame(
+  Total_Reads = colSums(final_counts[,-c(1,2)]),
+  Mean_Expression = colMeans(final_counts[,-c(1,2)]),
+  Median_Expression = apply(final_counts[,-c(1,2)], 2, median)
+)
+
+kable_head(sample_summary, caption = "Summary Statistics per Sample")
+
+# check for outliers
+boxplot(log2(final_counts[,-c(1,2)] + 1), 
+        las = 2, col = "skyblue", 
+        main = "Log2 Counts Distribution",
+        ylab = "Log2(Counts + 1)")
 ```
+
+#### {#q6}
+Based on the summary table and boxplot, it appears there's a relatively consistent across all 10 samples, which matches with the fact that the original study didn't remove any outliers.
 
 ####  {#q7b}
 
@@ -345,7 +361,7 @@ kable_head(meta_df, n = 10, caption = "Sample Metadata")
 
 ### 3.3 Data filtering
 
-Using an `edgeR` data container and package-level functions, lowly expressed genes were filtered out based on threholds set by `edgeR` based on the design matrix of the dataset.(@chen_reads_2016) The purpose of this step is to improve statistical power by reducing the burden of multiple testing and removing "noisy" data that cannot reach significance anyway.
+Using an `edgeR` data container and package-level functions, lowly expressed genes were filtered out based on threholds set by `edgeR` based on the design matrix of the dataset (@chen_reads_2016). The purpose of this step is to improve statistical power by reducing the burden of multiple testing and removing "noisy" data that cannot reach significance anyway.
 
 ```{r filtering}
 # create edgeR data container
@@ -371,11 +387,7 @@ count_mappings_filtered <- count_mappings[count_mappings$ensembl_gene_id %in% ro
 
 ### 3.4 Apply Normalization
 
-Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization (@robinson_scaling_2010) on the cleaned and filtered count data.
-
-TODO:
-
--   which normalization method and why?
+Prior to differential expression analysis, I performed Trimmed Mean of M-values (TMM) normalization on the cleaned and filtered count data (@robinson_scaling_2010). I used the TMM method via `edgeR` since it is preferred for RNA-seq as it accounts for compositional differences between libraries (@dawadi_bench_2025).
 
 ```{r normalization}
 # TODO: create plot of data pre-normalization

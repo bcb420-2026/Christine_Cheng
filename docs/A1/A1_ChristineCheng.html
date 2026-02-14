@@ -1693,7 +1693,7 @@ present locally in designated data files directory.</p>
 data_dir &lt;- &quot;A1_files&quot;  # sub-directory for all A1 files
 
 # checking for existence of directory for storing data files
-if (!dir.exists(data_dir)) 
+if (!dir.exists(data_dir))
   dir.create(data_dir)
 
 counts_file &lt;- file.path(data_dir, &quot;GSE166605_D1-5_Neg_C_miR_155_RAW_counts.txt.gz&quot;)
@@ -1852,7 +1852,7 @@ counts &lt;- raw_counts %&gt;%
   as.data.frame()
 
 # strip Ensemble ID version numbers
-counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id) 
+counts$ensembl_gene_id &lt;- strip_ensembl_version(counts$ensembl_gene_id)
 
 kable_head(counts, caption = &quot;Snapshot of Processed Count Matrix&quot;) </code></pre>
 <table style="width:100%;">
@@ -2042,30 +2042,30 @@ it is okay to do what I did to address the issue</p>
 #   dplyr::group_by(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n() &gt; 1) %&gt;%
 #   dplyr::arrange(ensembl_gene_id)
-# 
+#
 # View(duplicates)
-# 
+#
 # duplicate_summary &lt;- mapped_counts %&gt;%
 #   dplyr::count(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n &gt; 1)
-# 
+#
 # View(duplicate_summary)
-# 
+#
 # id_conflicts &lt;- mapped_counts %&gt;%
 #   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
 #   dplyr::filter(n() &gt; 1)
-# 
+#
 # View(id_conflicts)
-# 
+#
 # missing_gene &lt;- setdiff(
-#   unique(duplicate_summary$ensembl_gene_id), 
+#   unique(duplicate_summary$ensembl_gene_id),
 #   unique(id_conflicts$ensembl_gene_id)
 # )
-# 
+#
 # duplicates[duplicates$ensembl_gene_id == missing_gene, ] # same stripped Ensembl ID mapped to 2 different HGNC symbols!
-# 
+#
 # raw_counts[raw_counts$GeneID == missing_gene, ] # raw counts doesn&#39;t have duplicated `missing_gene`!
-# 
+#
 # # after running just:
 # # mapped_counts &lt;- counts %&gt;%
 # # +   dplyr::left_join(ids_map, by = &quot;ensembl_gene_id&quot;)
@@ -2091,21 +2091,21 @@ mapped_counts_fixed &lt;- counts %&gt;%
 #   dplyr::group_by(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n() &gt; 1) %&gt;%
 #   dplyr::arrange(ensembl_gene_id)
-# 
+#
 # View(duplicates1)
-# 
+#
 # duplicate_summary1 &lt;- mapped_counts_fixed %&gt;%
 #   dplyr::count(ensembl_gene_id) %&gt;%
 #   dplyr::filter(n &gt; 1)
-# 
+#
 # View(duplicate_summary1)
-# 
+#
 # id_conflicts1 &lt;- mapped_counts_fixed %&gt;%
 #   dplyr::group_by(ensembl_gene_id, hgnc_symbol) %&gt;%
 #   dplyr::filter(n() &gt; 1)
-# 
+#
 # View(id_conflicts1)
-# 
+#
 # nrow(duplicates1) == nrow(duplicate_summary1)*2
 # nrow(duplicate_summary1)*2 == nrow(id_conflicts1)
 # #fixed :)</code></pre>
@@ -2313,7 +2313,7 @@ final_counts &lt;- final_counts %&gt;%
 <pre class="r"><code># check for expression value duplicates across samples
 dup_samples &lt;- final_counts[, c(FALSE, FALSE, duplicated(as.list(final_counts[, 3:ncol(final_counts)])))]
 cat(&quot;\nUnique expression values between samples? &quot;, ncol(dup_samples) == 0)</code></pre>
-<pre><code>## 
+<pre><code>##
 ## Unique expression values between samples?  TRUE</code></pre>
 </div>
 </div>
@@ -2349,7 +2349,7 @@ cat(&quot;Valid count matrix values? &quot;, valid_counts)</code></pre>
 <pre class="r"><code># check that no expression values are negative or NA
 edger_precon &lt;- all(sapply(final_counts, function(x) all(!is.na(x) &amp; x &gt;= 0 &amp; x %% 1 == 0)))
 cat(&quot;\nFinal count matrix meets input preconditions? &quot;, edger_precon)</code></pre>
-<pre><code>## 
+<pre><code>##
 ## Final count matrix meets input preconditions?  TRUE</code></pre>
 <pre class="r"><code># TODO: is this necessary???
 # final_counts1 &lt;- as.matrix(final_counts)
@@ -2363,11 +2363,11 @@ is also needed:</p>
 <pre class="r"><code># Sample name format: D# CD14 control/treatment_name
 samples &lt;- colnames(final_counts)
 cell_line &lt;- unlist(lapply(samples,
-                          FUN = function(x){unlist(strsplit(x,split = &quot; &quot;))[2]}))       
+                          FUN = function(x){unlist(strsplit(x,split = &quot; &quot;))[2]}))
 
 # TODO: remove
-# treatment &lt;- unlist(lapply(samples,FUN = 
-#                              function(x){unlist(strsplit(x,split = &quot; &quot;))[3]}))     
+# treatment &lt;- unlist(lapply(samples,FUN =
+#                              function(x){unlist(strsplit(x,split = &quot; &quot;))[3]}))
 
 is_control &lt;- ifelse(grepl(&quot;Neg&quot;, samples, ignore.case = TRUE), &quot;Control&quot;, &quot;miR155&quot;)
 condition = factor(is_control, levels = c(&quot;Control&quot;, &quot;miR155&quot;))
@@ -2622,7 +2622,7 @@ legend(&quot;topright&quot;,
 <pre class="r"><code># TODO: add caption</code></pre>
 <pre class="r"><code>lcpm &lt;- edgeR::cpm(dge_filtered, log = TRUE, prior.count = 1)
 summary(as.vector(lcpm))</code></pre>
-<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
 ## -4.7379  0.6887  3.4153  3.2277  5.5310 14.7061</code></pre>
 <p>Below is the final normalized expression set with HUGO symbol
 annotations, as required by the assignment:</p>
@@ -2895,7 +2895,7 @@ map_df &lt;- count_mappings %&gt;%
   ) %&gt;%
   dplyr::distinct(ensembl_id, .keep_all = TRUE)
 
-# Join mapping onto the edgeR results table 
+# Join mapping onto the edgeR results table
 dge_results2_annotated &lt;- dge_results2 %&gt;%
   dplyr::mutate(ensembl_id = as.character(ensembl_id)) %&gt;%
   dplyr::left_join(map_df, by = &quot;ensembl_id&quot;) %&gt;%

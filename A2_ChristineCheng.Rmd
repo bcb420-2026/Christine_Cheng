@@ -1,0 +1,203 @@
+---
+title: "A2 - Dataset Pathway and Network Analysis"
+author: "Christine En-Tse Cheng"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    code_folding: hide
+params:
+  working_dir: ./A2_files
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A2") })
+bibliography: A2_files/A2_references.bib
+link-citations: true            # this is for the citations/bibliography 
+nocite: '@*'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      knitr.kable.max_rows = 6)
+
+# helper function to present formatted data table previews (default: 6 rows)
+kable_head_helper <- function() {
+  i <- 0
+  function(x, n = 6, caption = NULL) {
+    i <<- i + 1
+    full_caption <- paste0("**Table ", i, ".** ", caption)
+    knitr::kable(utils::head(x, n), caption = full_caption)
+  }
+}
+kable_head <- kable_head_helper()
+
+working_dir <- params$working_dir
+# data_dir <- working_dir
+```
+
+```{r packages}
+# install/attach packages
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+
+if (!require("gprofiler2", quietly = TRUE))
+  install.packages("gprofiler2")
+
+if (!require("GSA", quietly = TRUE))
+  install.packages("GSA")
+```
+
+
+## 1 Introduction
+
+TODO: summary of the normalization and scoring done in the first assignment. Assume that the person reading the report has not read your assignment #1 report. Including basic statistics from that analysis will be helpful. (for example, data downloaded from GEO with id X, …).
+  - TODO: actually do the normalization properly...I ran the TMM thing and got graphs to show what normalized data would look like, but I don't think I actually ended up using the normalized data -_-
+
+You can include your previous notebooks as subsections of this report by following the instructions outlined here: <https://yihui.org/knitr/demo/child/> This report describes the selection, data preparation, normalization, and differential expression analysis of a publicly available human gene expression dataset. The workflow follows best practices for RNA-seq analysis as outlined by (@dawadi_bench_2025).
+
+This report performs pathway and network analysis on the differentially expressed genes (DEGs) reported by [Assignment #1](https://bcb420-2026.github.io/Christine_Cheng/A1/A1_ChristineCheng.html).
+
+```{r dge_results}
+# dge_genes <- readRDS("./dge_results.rds")
+a1_results <- readRDS("./A1_outputs.rds")
+dge_results <- a1_results$dge_results
+kable_head(dge_results, caption = "Preview of top DE genes")
+```
+
+Below is a quick overview of the DEGs reported previously:
+
+```{r dge_stats}
+# upregulated DEGs
+upDEGs <- which(dge_results$FDR < 0.05 & dge_results$logFC > 0)
+cat("# of upregulated differentially expressed genes: ", length(upDEGs))
+
+# downregulated DEGs
+downDEGs <- which(dge_results$FDR < 0.05 & dge_results$logFC < 0)
+cat("# of downregulated differentially expressed genes: ", length(downDEGs))
+```
+
+## 2 Thresholded over-representation analysis (ORA) / Gene List Enrichment Analysis {#q2.1}
+
+First, thresholded over-representation analysis was performed with the `gprofilerr2` package. I chose this method because ...
+
+```{r gprofiler_prep}
+# genelist_file <- dge_results
+max_gs_size <- 250  # TODO: varying, maybe?? and justification of value
+min_gs_size <- 3 # TODO: justification
+min_intersection <- 3 # TODO: justification
+
+orgnsm_binom <- "hsapiens"  # organism parameter for g:Profiler
+
+# checking for local version of gmt file, before acessing and downloading from Baderlab
+dest_gmt_file = "https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt"
+local_gmt <- file.path(working_dir,
+                       "Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt")
+if (!file.exists(local_gmt)) {
+  download.file(dest_gmt_file, destfile = local_gmt, mode = "wb")
+}
+
+# access and dowload g:Profiler .gmt file
+gprofiler_gmt_url <- "https://biit.cs.ut.ee/gprofiler/static/gprofiler_full_hsapiens.name.gmt"
+gprofiler_ver <- get_version_info(organism = orgnsm_binom)
+
+gprofiler_gmt_filename <- file.path(working_dir,
+                                    paste("gprofiler_full", orgnsm_binom,
+                                          gprofiler_ver$gprofiler_version,sep="_",
+                                          ".name.gmt"))
+
+if (!file.exists(gprofiler_gmt_filename)) {
+  download.file(url = gprofiler_gmt_url,
+                destfile = gprofiler_gmt_filename)
+  }
+```
+
+```{r run_gprofiler}
+# TODO: build query genelist
+gene_list <- dge_results[dge_results$FDR < 0.5, ]$hgnc_symbol
+
+# g:Profiler (default geneset) query
+gprofiler_results <- gprofiler2::gost(query = gene_list,
+                                      significant = FALSE, # to return all results; not just significance thresholded results
+                                      ordered_query = FALSE, # TODO: check whether query gene list is ordered by significance or not
+                                      exclude_iea = TRUE,
+                                      correction_method = "fdr",
+                                      organism = orgnsm_binom,
+                                      sources = c("REAC", "WP", "GO:BP"))
+enrichment_results <- gprofiler_results$result
+```
+
+### 2.1 ORA method
+
+### 2.2 Annotation dataset
+
+### 2.3 Discussion
+
+## 3 Non-thresholded Gene Set Enrichment Analysis (GSEA) {#q3.1}
+
+Next, non-thresholded gene set enrichment analysis using GSEA from R was conducted on the same set of DEGs from assignment #1. I chose this method because ...
+
+### 3.1 GSEA method and genesets
+
+### 3.2 Discussion
+
+## 4 Cytoscape visualization
+
+### 4.1 Enrichment Map
+
+### 4.2 Network Annotation
+
+### 4.3 Theme Network
+
+### 4.4 Discussion
+
+TODO: link journal entry Additional "rough work"/trial code and reflections can be found [here](https://github.com/bcb420-2026/Christine_Cheng/wiki/Assignment-2).
+
+## 5 Question Collections
+
+### 5.1 Thresholded over-representation analysis (ORA)
+
+1.  [Which method did you choose and why?](#q2.1)
+
+2.  [What annotation data did you use and why? What version of the annotation are you using?](#q2.2)
+
+3.  [How many genesets were returned with what thresholds?](#q2.3)
+
+4.  [How do the analysis results on the separated up-regulated and down-regulated gene lists compare to using the whole list of differentially expressed genes together?](#q2.4)
+
+5.  [Do the over-representation results support conclusions or mechanism discussed in the original paper?](#q2.5)
+
+6.  [Can you find evidence, i.e. publications, to support some of the results that you see. How does this evidence support your results.](#q2.6)
+
+### 5.2 Non-thresholded Gene Set Enrichment Analysis (GSEA)
+
+1.  [What method did you use? What genesets did you use?](#q3.1)
+
+2.  [Summarize your enrichment results.](#q3.2)
+
+3.  [How do these results compare to the results from the thresholded analysis? Compare qualitatively. Is this a straight forward comparison? Why or why not?](#q3.3)
+
+### 5.3 Cytoscape visualization
+
+1.  [How many nodes and how many edges were in the resulting enrichment map? What thresholds were used to create this map?](#q4.1)
+
+2.  [What parameters did you use to annotate the network?](#q4.2)
+
+3.  [Make a publication ready figure.](#q4.3)
+
+4.  [What are the major themes present in the collapse to a theme network? Do they fit with the model? Are there any novel pathways or themes?](#q4.4)
+
+5.  [Do the enrichment results support conclusions or mechanism discussed in the original paper? How do these results differ from the results you got from thresholded methods?](#q4.5)
+
+6.  [Can you find evidence, i.e. publications, to support some of the results that you see? How does this evidence support your result?](#q4.6)
+
+## 6 Discussion and Conclusion
+
+## 7 References
+
+```{r}
+citation("gprofiler2")
+citation("GSA")
+```

@@ -417,7 +417,7 @@ legend("topright",
 
 ## 4 Differential Expression Analysis
 
-Then I conducted differential expression analysis using the recommended quasi-likelihood pipeline from `edgeR` (@chen_reads_2016).
+Then I conducted differential expression analysis using the recommended quasi-likelihood pipeline from `edgeR` (@chen_reads_2016). The first step of this was to set-up the necessary experiment design and contrasts.
 
 ```{r dge_setup}
 cat("Data design condition variable names: ", colnames(design))
@@ -433,15 +433,23 @@ edge <- edgeR::estimateDisp(dge_filtered, design)
 fit <- edgeR::glmQLFit(edge, design)
 ```
 
+Below is the genewise biological coefficient of variation (BCV) plotted against gene abundance:
+
 ```{r bcv_plot}
-plotBCV(edge)
+edgeR::plotBCV(edge)
 ```
+
+Then, I ran the differential gene expression test from `EdgeR` comparing samples with *miR-155* overexpression against the negative control. Below are the top differentially expressed genes (DEGs), sorted by p-value, p-value adjusted for multiple testing via the default Benjamini & Hochberg (`BH`) method, with an adjusted p-value cut-off of less than or equal to 1:
 
 ```{r dge_test}
 miR155_vs_Ctrl <- edgeR::glmQLFTest(fit, contrast = contr)
-dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>% tibble::rownames_to_column("ensembl_id")
+dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
+  tibble::rownames_to_column("ensembl_id")
+
 kable_head(dge_results, caption = "Preview of top DE genes")
 ```
+
+Below is a volcano plot, highlighting the DEGs:
 
 ```{r volcano_plot}
 volcano_df <- dge_results %>%
@@ -459,6 +467,7 @@ ggplot2::ggplot(volcano_df,
 ```
 
 ```{r volcano_plot2}
+# build annotated DGE results /w Ensemble IDs column and labelled significantly up-/down-regulated genes
 dge_results2 <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
   tibble::rownames_to_column("ensembl_id") %>%
   dplyr::mutate(
@@ -498,7 +507,7 @@ map_df <- count_mappings %>%
   ) %>%
   dplyr::distinct(ensembl_id, .keep_all = TRUE)
 
-# Join mapping onto the edgeR results table 
+# Join mapping onto the edgeR results table => ID-mapped and labelling of significantly up-/down-regulated genes
 dge_results2_annotated <- dge_results2 %>%
   dplyr::mutate(ensembl_id = as.character(ensembl_id)) %>%
   dplyr::left_join(map_df, by = "ensembl_id") %>%
@@ -513,7 +522,7 @@ dge_results2_annotated <- dge_results2 %>%
 mapped_percentage <- mean(!is.na(dge_results2_annotated$hgnc_symbol)) * 100
 cat("Proportion (%) of maped DE results: ", mapped_percentage)
 
-head(dge_results2_annotated[, c("ensembl_id", "hgnc_symbol", "display_name", "logFC", "FDR")])
+# head(dge_results2_annotated[, c("ensembl_id", "hgnc_symbol", "display_name", "logFC", "FDR")])
 
 # Top DEGs: all genes with FDR < 0.05
 top_deg_hits <- dge_results2_annotated %>%
@@ -527,6 +536,15 @@ top_hits_ensembl <- top_deg_hits$ensembl_id
 top_hits_labels <- top_deg_hits$display_name
 
 head(top_deg_hits[, c("ensembl_id","display_name","logFC","FDR")])
+```
+
+```{r save_data}
+# saving processed data and DGE results as RDS object for downstream analysis
+saveRDS(list(raw_counts = final_counts,
+             meta = meta_df,
+             id_mappings = count_mappings,
+             dge_results = dge_results2_annotated),
+        file = "./A1_outputs.rds")
 ```
 
 ```{r expression_matrix}
@@ -549,8 +567,10 @@ rownames(hm_mat) <- make.unique(hm_labels)
 # Z-score per gene across samples for pattern visibility
 hm_z <- t(scale(t(hm_mat)))
 
-dim(hm_z)
+# dim(hm_z)
 ```
+
+Below is a heatmap of gene expression changes, highlighting genes that are overexpressed together or underexpressed together.
 
 ```{r heatmap_annotation}
 meta_df$cell_line <- as.factor(meta_df$cell_line)
@@ -617,8 +637,9 @@ ComplexHeatmap::Heatmap(
 Final coverage of the dataset:
 
 ```{r}
-cat("The final dataset, after filtering lowly expressed genes, contains ", nrow(dge_filtered) , " genes across 10 samples")
+cat("The final dataset, after filtering lowly expressed genes, contains ", nrow(dge_results2_annotated) , " genes across 10 samples")
 ```
+
 This can be considered a robust coverage of the human protein-coding transcriptome suitable for pathway analysis.
 
 ## 5 Discussion

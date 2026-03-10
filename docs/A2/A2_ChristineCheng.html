@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christine En-Tse Cheng" />
 
-<meta name="date" content="2026-03-08" />
+<meta name="date" content="2026-03-10" />
 
 <title>A2 - Dataset Pathway and Network Analysis</title>
 
@@ -1592,7 +1592,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">A2 - Dataset Pathway and Network
 Analysis</h1>
 <h4 class="author">Christine En-Tse Cheng</h4>
-<h4 class="date">2026-03-08</h4>
+<h4 class="date">2026-03-10</h4>
 
 </div>
 
@@ -1601,11 +1601,20 @@ Analysis</h1>
 # if (!require(&quot;BiocManager&quot;, quietly = TRUE))
 #   install.packages(&quot;BiocManager&quot;)
 
-if (!require(&quot;gprofiler2&quot;, quietly = TRUE))
+if (!require(&quot;gprofiler2&quot;, quietly = TRUE)) {
   install.packages(&quot;gprofiler2&quot;)
+  library(gprofiler2)
+}
 
-if (!require(&quot;GSA&quot;, quietly = TRUE))
-  install.packages(&quot;GSA&quot;)</code></pre>
+if (!require(&quot;GSA&quot;, quietly = TRUE)) {
+  install.packages(&quot;GSA&quot;)
+  library(GSA)
+}
+
+if (!require(&quot;RCurl&quot;, quietly = TRUE)) {
+  install.packages(&quot;RCurl&quot;)
+  library(RCurl)
+}  </code></pre>
 <div id="introduction" class="section level2">
 <h2>1 Introduction</h2>
 <p>TODO: summary of the normalization and scoring done in the first
@@ -1786,6 +1795,7 @@ gprofiler_results &lt;- gprofiler2::gost(query = gene_list,
                                       organism = orgnsm_binom,
                                       sources = c(&quot;REAC&quot;, &quot;WP&quot;, &quot;GO:BP&quot;))
 enrichment_results &lt;- gprofiler_results$result</code></pre>
+<pre class="r"><code># TODO: Run the analysis using the up-regulated set of genes, and the down-regulated set of genes separately</code></pre>
 <div id="ora-method" class="section level3">
 <h3>2.1 ORA method</h3>
 </div>
@@ -1801,6 +1811,40 @@ enrichment_results &lt;- gprofiler_results$result</code></pre>
 <p>Next, non-thresholded gene set enrichment analysis using GSEA from R
 was conducted on the same set of DEGs from assignment #1. I chose this
 method because …</p>
+<pre class="r"><code>#path to GSEA jar 
+gsea_jar &lt;- params$gsea_jar
+
+#directory where all the data files are found and should be written to
+working_dir &lt;- params$working_dir
+output_dir &lt;- params$working_dir
+
+#The name to give the analysis in GSEA
+analysis_name &lt;- &quot;miR155_vs_NegCtrl&quot;
+
+#rank file to use in GSEA analysis.  
+rnk_file &lt;- gene_list   # TODO: build GSEA-appropriate rank file
+
+run_gsea &lt;- params$run_gsea</code></pre>
+<pre class="r"><code># set the gmt file to Bader Lab&#39;s no OCR/IEA gmt file from September 01, 2025:
+dest_gmt_file = &quot;https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;
+
+local_gmt &lt;- file.path(working_dir, &quot;Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;)
+
+if (!file.exists(local_gmt)) {
+  download.file(dest_gmt_file, destfile = local_gmt, mode = &quot;wb&quot;)
+}</code></pre>
+<pre class="r"><code>if(run_gsea){
+  command &lt;- paste(&quot;&quot;, gsea_jar,  
+                   &quot;GSEAPreRanked -gmx&quot;, local_gmt, 
+                   &quot;-rnk&quot; , file.path(working_dir, rnk_file), 
+                   &quot;-collapse false -nperm 1000 -scoring_scheme weighted&quot;, 
+                   &quot;-rpt_label &quot;, analysis_name,
+                   &quot;  -plot_top_x 20 -rnd_seed 12345  -set_max 200&quot;,  
+                   &quot; -set_min 15 -zip_report false &quot;,
+                   &quot; -out&quot; , output_dir, 
+                   &quot; &gt; gsea_output.txt&quot;, sep= &quot; &quot;)
+  system(command)
+}</code></pre>
 <div id="gsea-method-and-genesets" class="section level3">
 <h3>3.1 GSEA method and genesets</h3>
 </div>
@@ -1920,11 +1964,45 @@ your result?</a></p></li>
 ## ATTENTION: This citation information has been auto-generated from the
 ## package DESCRIPTION file and may need manual editing, see
 ## &#39;help(&quot;citation&quot;)&#39;.</code></pre>
+<pre class="r"><code>citation(&quot;RCurl&quot;)</code></pre>
+<pre><code>## To cite package &#39;RCurl&#39; in publications use:
+## 
+##   Temple Lang D (2025). _RCurl: General Network (HTTP/FTP/...) Client
+##   Interface for R_. doi:10.32614/CRAN.package.RCurl
+##   &lt;https://doi.org/10.32614/CRAN.package.RCurl&gt;, R package version
+##   1.98-1.17, &lt;https://CRAN.R-project.org/package=RCurl&gt;.
+## 
+## A BibTeX entry for LaTeX users is
+## 
+##   @Manual{,
+##     title = {RCurl: General Network (HTTP/FTP/...) Client Interface for R},
+##     author = {Duncan {Temple Lang}},
+##     year = {2025},
+##     note = {R package version 1.98-1.17},
+##     url = {https://CRAN.R-project.org/package=RCurl},
+##     doi = {10.32614/CRAN.package.RCurl},
+##   }</code></pre>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-allaire_rmarkdown_2025" class="csl-entry">
 Allaire, J. J., Yihui Xie, Christophe Dervieux, et al. 2025.
 <em>Rmarkdown: <span>Dynamic</span> <span>Documents</span> for
 <span>R</span></em>. <a href="https://github.com/rstudio/rmarkdown">https://github.com/rstudio/rmarkdown</a>.
+</div>
+<div id="ref-efron_gsa_2024" class="csl-entry">
+Efron, Brad, and R. Tibshirani. 2024. <em><span>GSA</span>:
+<span>Gene</span> <span>Set</span> <span>Analysis</span></em>. <a href="https://tibshirani.su.domains/GSA/">https://tibshirani.su.domains/GSA/</a>.
+</div>
+<div id="ref-kolberg_gprofiler2_2020" class="csl-entry">
+Kolberg, Liis, Uku Raudvere, Ivan Kuzmin, Jaak Vilo, and Hedi Peterson.
+2020. <span>“Gprofiler2– an <span>R</span> Package for Gene List
+Functional Enrichment Analysis and Namespace Conversion Toolset
+g:<span>Profiler</span>.”</span> <em>F1000Research</em> 9 (ELIXIR)
+(709).
+</div>
+<div id="ref-temple_lang_rcurl_2004" class="csl-entry">
+Temple Lang, Duncan. 2004. <em><span>RCurl</span>: <span>General</span>
+<span>Network</span> (<span>HTTP</span>/<span>FTP</span>/...)
+<span>Client</span> <span>Interface</span> for <span>R</span></em>. <a href="https://doi.org/10.32614/CRAN.package.RCurl">https://doi.org/10.32614/CRAN.package.RCurl</a>.
 </div>
 <div id="ref-stodden_knitr_2014" class="csl-entry">
 Xie, Yihui. 2014. <span>“Knitr: <span>A</span>

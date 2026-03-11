@@ -108,9 +108,9 @@ min_intersection <- 3 # TODO: justification
 orgnsm_binom <- "hsapiens"  # organism parameter for g:Profiler
 
 # checking for local version of gmt file, before accessing and downloading from Baderlab
-dest_gmt_file = "https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt"
+dest_gmt_file = "https://download.baderlab.org/EM_Genesets/March_02_2026/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_March_02_2026_symbol.gmt"
 local_gmt <- file.path(working_dir,
-                       "Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt")
+                       "Human_GOBP_AllPathways_noPFOCR_no_GO_iea_March_02_2026_symbol.gmt")
 if (!file.exists(local_gmt)) {
   download.file(dest_gmt_file, destfile = local_gmt, mode = "wb")
 }

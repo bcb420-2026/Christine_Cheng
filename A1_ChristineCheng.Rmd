@@ -443,16 +443,28 @@ Then, I ran the differential gene expression test from `EdgeR` comparing samples
 
 ```{r dge_test}
 miR155_vs_Ctrl <- edgeR::glmQLFTest(fit, contrast = contr)
-dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
-  tibble::rownames_to_column("ensembl_id")
+# dge_results <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
+#   tibble::rownames_to_column("ensembl_id")
 
-kable_head(dge_results, caption = "Preview of top DE genes")
+# build annotated DGE results /w Ensemble IDs column and labelled significantly up-/down-regulated genes
+dge_results1 <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
+  tibble::rownames_to_column("ensembl_id") %>%
+  dplyr::mutate(
+    neglog10P = -log10(PValue),
+    direction = case_when(
+      FDR < 0.05 & logFC > 0 ~ "Up",
+      FDR < 0.05 & logFC < 0 ~ "Down",
+      TRUE ~ "Not sig"
+    )
+  )
+
+kable_head(dge_results1, caption = "Preview of top DE genes")
 ```
 
 Below is a volcano plot, highlighting the DEGs:
 
 ```{r volcano_plot}
-volcano_df <- dge_results %>%
+volcano_df <- dge_results1 %>%
   dplyr::mutate(sig = FDR < 0.05)
 
 ggplot2::ggplot(volcano_df,
@@ -467,19 +479,7 @@ ggplot2::ggplot(volcano_df,
 ```
 
 ```{r volcano_plot2}
-# build annotated DGE results /w Ensemble IDs column and labelled significantly up-/down-regulated genes
-dge_results2 <- edgeR::topTags(miR155_vs_Ctrl, n = Inf)$table %>%
-  tibble::rownames_to_column("ensembl_id") %>%
-  dplyr::mutate(
-    neglog10P = -log10(PValue),
-    direction = case_when(
-      FDR < 0.05 & logFC > 0 ~ "Up",
-      FDR < 0.05 & logFC < 0 ~ "Down",
-      TRUE ~ "Not sig"
-    )
-  )
-
-ggplot2::ggplot(dge_results2, ggplot2::aes(x = logFC, y = neglog10P)) +
+ggplot2::ggplot(dge_results1, ggplot2::aes(x = logFC, y = neglog10P)) +
   ggplot2::geom_point(ggplot2::aes(color = direction), alpha = 0.7, size = 1.2) +
   ggplot2::scale_color_manual(values = c(
     "Up" = "red",
@@ -508,24 +508,25 @@ map_df <- count_mappings %>%
   dplyr::distinct(ensembl_id, .keep_all = TRUE)
 
 # Join mapping onto the edgeR results table => ID-mapped and labelling of significantly up-/down-regulated genes
-dge_results2_annotated <- dge_results2 %>%
+dge_results1_annotated <- dge_results1 %>%
   dplyr::mutate(ensembl_id = as.character(ensembl_id)) %>%
-  dplyr::left_join(map_df, by = "ensembl_id") %>%
-  dplyr::mutate(
-    # Use HGNC when available, otherwise fall back to Ensembl
-    display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
-                          hgnc_symbol,
-                          ensembl_id)
-  )
+  dplyr::left_join(map_df, by = "ensembl_id")
+  # %>%
+  # dplyr::mutate(
+  #   # Use HGNC when available, otherwise fall back to Ensembl
+  #   display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
+  #                         hgnc_symbol,
+  #                         ensembl_id)
+  # )
 
 # Quick check: how many mapped?
-mapped_percentage <- mean(!is.na(dge_results2_annotated$hgnc_symbol)) * 100
+mapped_percentage <- mean(!is.na(dge_results1_annotated$hgnc_symbol)) * 100
 cat("Proportion (%) of maped DE results: ", mapped_percentage)
 
 # head(dge_results2_annotated[, c("ensembl_id", "hgnc_symbol", "display_name", "logFC", "FDR")])
 
 # Top DEGs: all genes with FDR < 0.05
-top_deg_hits <- dge_results2_annotated %>%
+top_deg_hits <- dge_results1_annotated %>%
   dplyr::arrange(FDR, PValue) %>%
   dplyr::filter(FDR < 0.05)
 
@@ -533,9 +534,9 @@ top_deg_hits <- dge_results2_annotated %>%
 top_hits_ensembl <- top_deg_hits$ensembl_id
 
 # Row labels we want to show on the heatmap
-top_hits_labels <- top_deg_hits$display_name
+top_hits_labels <- top_deg_hits$hgnc_symbol
 
-head(top_deg_hits[, c("ensembl_id","display_name","logFC","FDR")])
+head(top_deg_hits[, c("ensembl_id","hgnc_symbol","logFC","FDR")])
 ```
 
 ```{r save_data}
@@ -543,7 +544,7 @@ head(top_deg_hits[, c("ensembl_id","display_name","logFC","FDR")])
 saveRDS(list(raw_counts = final_counts,
              meta = meta_df,
              id_mappings = count_mappings,
-             dge_results = dge_results2_annotated),
+             dge_results = dge_results1_annotated),
         file = "./A1_outputs.rds")
 ```
 
@@ -637,7 +638,7 @@ ComplexHeatmap::Heatmap(
 Final coverage of the dataset:
 
 ```{r}
-cat("The final dataset, after filtering lowly expressed genes, contains ", nrow(dge_results2_annotated) , " genes across 10 samples")
+cat("The final dataset, after filtering lowly expressed genes, contains ", nrow(dge_results1_annotated) , " genes across 10 samples")
 ```
 
 This can be considered a robust coverage of the human protein-coding transcriptome suitable for pathway analysis.

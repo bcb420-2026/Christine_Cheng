@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christine En-Tse Cheng" />
 
-<meta name="date" content="2026-03-10" />
+<meta name="date" content="2026-03-11" />
 
 <title>A2 - Dataset Pathway and Network Analysis</title>
 
@@ -1592,7 +1592,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">A2 - Dataset Pathway and Network
 Analysis</h1>
 <h4 class="author">Christine En-Tse Cheng</h4>
-<h4 class="date">2026-03-10</h4>
+<h4 class="date">2026-03-11</h4>
 
 </div>
 
@@ -1635,20 +1635,20 @@ differentially expressed genes (DEGs) reported by <a href="https://bcb420-2026.g
 #1</a>.</p>
 <pre class="r"><code># dge_genes &lt;- readRDS(&quot;./dge_results.rds&quot;)
 a1_results &lt;- readRDS(&quot;./A1_outputs.rds&quot;)
+# full_genelist &lt;- a1_results$id_mappings
 dge_results &lt;- a1_results$dge_results
 kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></pre>
 <table>
 <caption><strong>Table 1.</strong> Preview of top DE genes</caption>
 <colgroup>
-<col width="14%" />
+<col width="17%" />
+<col width="10%" />
+<col width="10%" />
+<col width="10%" />
+<col width="7%" />
 <col width="9%" />
-<col width="9%" />
-<col width="9%" />
-<col width="6%" />
-<col width="8%" />
-<col width="9%" />
-<col width="9%" />
-<col width="11%" />
+<col width="10%" />
+<col width="10%" />
 <col width="12%" />
 </colgroup>
 <thead>
@@ -1662,7 +1662,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <th align="right">neglog10P</th>
 <th align="left">direction</th>
 <th align="left">hgnc_symbol</th>
-<th align="left">display_name</th>
 </tr>
 </thead>
 <tbody>
@@ -1676,7 +1675,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">8.035760</td>
 <td align="left">Up</td>
 <td align="left">PRLR</td>
-<td align="left">PRLR</td>
 </tr>
 <tr class="even">
 <td align="left">ENSG00000121858</td>
@@ -1687,7 +1685,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">7.72e-05</td>
 <td align="right">7.859356</td>
 <td align="left">Up</td>
-<td align="left">TNFSF10</td>
 <td align="left">TNFSF10</td>
 </tr>
 <tr class="odd">
@@ -1700,7 +1697,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">7.747882</td>
 <td align="left">Up</td>
 <td align="left">SLC38A5</td>
-<td align="left">SLC38A5</td>
 </tr>
 <tr class="even">
 <td align="left">ENSG00000104213</td>
@@ -1711,7 +1707,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">7.72e-05</td>
 <td align="right">7.709796</td>
 <td align="left">Up</td>
-<td align="left">PDGFRL</td>
 <td align="left">PDGFRL</td>
 </tr>
 <tr class="odd">
@@ -1724,7 +1719,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">7.425871</td>
 <td align="left">Down</td>
 <td align="left">FCER1A</td>
-<td align="left">FCER1A</td>
 </tr>
 <tr class="even">
 <td align="left">ENSG00000181374</td>
@@ -1735,7 +1729,6 @@ kable_head(dge_results, caption = &quot;Preview of top DE genes&quot;)</code></p
 <td align="right">9.59e-05</td>
 <td align="right">7.373262</td>
 <td align="left">Up</td>
-<td align="left">CCL13</td>
 <td align="left">CCL13</td>
 </tr>
 </tbody>
@@ -1754,7 +1747,7 @@ cat(&quot;# of downregulated differentially expressed genes: &quot;, length(down
 <h2>2 Thresholded over-representation analysis (ORA) / Gene List
 Enrichment Analysis</h2>
 <p>First, thresholded over-representation analysis was performed with
-the <code>gprofilerr2</code> package. I chose this method because …</p>
+the <code>gprofiler2</code> package. I chose this method because …</p>
 <pre class="r"><code># genelist_file &lt;- dge_results
 max_gs_size &lt;- 250  # TODO: varying, maybe?? and justification of value
 min_gs_size &lt;- 3 # TODO: justification
@@ -1762,7 +1755,7 @@ min_intersection &lt;- 3 # TODO: justification
 
 orgnsm_binom &lt;- &quot;hsapiens&quot;  # organism parameter for g:Profiler
 
-# checking for local version of gmt file, before acessing and downloading from Baderlab
+# checking for local version of gmt file, before accessing and downloading from Baderlab
 dest_gmt_file = &quot;https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;
 local_gmt &lt;- file.path(working_dir,
                        &quot;Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;)
@@ -1770,20 +1763,20 @@ if (!file.exists(local_gmt)) {
   download.file(dest_gmt_file, destfile = local_gmt, mode = &quot;wb&quot;)
 }
 
-# access and dowload g:Profiler .gmt file
+# access and download g:Profiler .gmt file
 gprofiler_gmt_url &lt;- &quot;https://biit.cs.ut.ee/gprofiler/static/gprofiler_full_hsapiens.name.gmt&quot;
 gprofiler_ver &lt;- get_version_info(organism = orgnsm_binom)
 
 gprofiler_gmt_filename &lt;- file.path(working_dir,
                                     paste(&quot;gprofiler_full&quot;, orgnsm_binom,
-                                          gprofiler_ver$gprofiler_version,sep=&quot;_&quot;,
+                                          gprofiler_ver$gprofiler_version, sep=&quot;_&quot;,
                                           &quot;.name.gmt&quot;))
 
 if (!file.exists(gprofiler_gmt_filename)) {
   download.file(url = gprofiler_gmt_url,
                 destfile = gprofiler_gmt_filename)
   }</code></pre>
-<pre class="r"><code># TODO: build query genelist
+<pre class="r"><code># TODO: build query genelist: should be thresholded (i.e., only a subset of genes)
 gene_list &lt;- dge_results[dge_results$FDR &lt; 0.5, ]$hgnc_symbol
 
 # g:Profiler (default geneset) query
@@ -1821,22 +1814,49 @@ output_dir &lt;- params$working_dir
 #The name to give the analysis in GSEA
 analysis_name &lt;- &quot;miR155_vs_NegCtrl&quot;
 
-#rank file to use in GSEA analysis.  
-rnk_file &lt;- gene_list   # TODO: build GSEA-appropriate rank file
-
 run_gsea &lt;- params$run_gsea</code></pre>
-<pre class="r"><code># set the gmt file to Bader Lab&#39;s no OCR/IEA gmt file from September 01, 2025:
-dest_gmt_file = &quot;https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;
+<pre class="r"><code>gmt_url &lt;- &quot;https://download.baderlab.org/EM_Genesets/current_release/Human/symbol/&quot;
 
-local_gmt &lt;- file.path(working_dir, &quot;Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;)
+filenames &lt;- getURL(gmt_url)
+tc &lt;- textConnection(filenames)
+contents &lt;- readLines(tc)
+close(tc)
 
-if (!file.exists(local_gmt)) {
-  download.file(dest_gmt_file, destfile = local_gmt, mode = &quot;wb&quot;)
-}</code></pre>
+rx &lt;- gregexpr(&quot;(?&lt;=&lt;a href=\&quot;)(.*.GOBP_AllPathways_noPFOCR_no_GO_iea.*.)(.gmt)(?=\&quot;&gt;)&quot;,
+              contents, perl = TRUE)
+gmt_filename &lt;- unlist(regmatches(contents, rx))
+gmt_file &lt;- file.path(working_dir, gmt_filename)
+
+if (!file.exists(gmt_file)) {
+  download.file(paste(gmt_url, gmt_filename, sep = &quot;&quot;), destfile = gmt_file, mode = &quot;wb&quot;)
+}
+
+# # set the gmt file to Bader Lab&#39;s no OCR/IEA gmt file from September 01, 2025:
+# dest_gmt_file = &quot;https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;
+# 
+# local_gmt &lt;- file.path(working_dir, &quot;Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt&quot;)
+# 
+# if (!file.exists(local_gmt)) {
+#   download.file(dest_gmt_file, destfile = local_gmt, mode = &quot;wb&quot;)
+# }</code></pre>
+<pre class="r"><code># rank file to use in GSEA analysis.  
+gene_ranks = sign(dge_results$logFC) * -log10(dge_results$PValue)
+
+#create ranks file
+ranked_genelist &lt;- cbind(dge_results$hgnc_symbol, gene_ranks)
+colnames(ranked_genelist) &lt;- c(&quot;GeneName&quot;, &quot;Rank&quot;)
+
+#sort ranks in decreasing order
+ranked_genelist &lt;- ranked_genelist[order(as.numeric(ranked_genelist[, 2]), decreasing = TRUE), ]
+
+# # necessary or not to write out a table??
+# write.table(ranked_genelist, 
+#             file.path(working_dir, paste0(analysis_name, &quot;_Ranked_GeneList.rnk&quot;)),
+#             col.name = TRUE, sep = &quot;\t&quot;, row.names = FALSE, quote = FALSE)</code></pre>
 <pre class="r"><code>if(run_gsea){
   command &lt;- paste(&quot;&quot;, gsea_jar,  
-                   &quot;GSEAPreRanked -gmx&quot;, local_gmt, 
-                   &quot;-rnk&quot; , file.path(working_dir, rnk_file), 
+                   &quot;GSEAPreRanked -gmx&quot;, gmt_file, 
+                   &quot;-rnk&quot; , file.path(working_dir, ranked_genelist), 
                    &quot;-collapse false -nperm 1000 -scoring_scheme weighted&quot;, 
                    &quot;-rpt_label &quot;, analysis_name,
                    &quot;  -plot_top_x 20 -rnd_seed 12345  -set_max 200&quot;,  

@@ -10,7 +10,8 @@ output:
     code_folding: hide
 params:
   working_dir: ./A2_files
-  gsea_jar: ~/GSEA_4.4.0/gsea-cli.sh  # local copy: ../GSEA/GSEA_4.4.0/gsea-cli.sh
+  # gsea_jar: ../../GSEA_4.4.0/gsea-cli.sh  # TODO: switch to docker ver.
+  gsea_jar: "C:/Users/chris/Downloads/BCB420H1-S/GSEA/GSEA_4.4.0/gsea-cli.bat"
   run_gsea: True
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/A2") })
@@ -60,6 +61,9 @@ if (!require("RCurl", quietly = TRUE)) {
   library(RCurl)
 }  
 ```
+```{r}
+# setwd("C:/Users/chris/Downloads/BCB420H1-S")
+```
 
 
 ## 1 Introduction
@@ -74,6 +78,7 @@ This report performs pathway and network analysis on the differentially expresse
 ```{r dge_results}
 # dge_genes <- readRDS("./dge_results.rds")
 a1_results <- readRDS("./A1_outputs.rds")
+# full_genelist <- a1_results$id_mappings
 dge_results <- a1_results$dge_results
 kable_head(dge_results, caption = "Preview of top DE genes")
 ```
@@ -102,7 +107,7 @@ min_intersection <- 3 # TODO: justification
 
 orgnsm_binom <- "hsapiens"  # organism parameter for g:Profiler
 
-# checking for local version of gmt file, before acessing and downloading from Baderlab
+# checking for local version of gmt file, before accessing and downloading from Baderlab
 dest_gmt_file = "https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt"
 local_gmt <- file.path(working_dir,
                        "Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt")
@@ -110,13 +115,13 @@ if (!file.exists(local_gmt)) {
   download.file(dest_gmt_file, destfile = local_gmt, mode = "wb")
 }
 
-# access and dowload g:Profiler .gmt file
+# access and download g:Profiler .gmt file
 gprofiler_gmt_url <- "https://biit.cs.ut.ee/gprofiler/static/gprofiler_full_hsapiens.name.gmt"
 gprofiler_ver <- get_version_info(organism = orgnsm_binom)
 
 gprofiler_gmt_filename <- file.path(working_dir,
                                     paste("gprofiler_full", orgnsm_binom,
-                                          gprofiler_ver$gprofiler_version,sep="_",
+                                          gprofiler_ver$gprofiler_version, sep="_",
                                           ".name.gmt"))
 
 if (!file.exists(gprofiler_gmt_filename)) {
@@ -165,14 +170,10 @@ output_dir <- params$working_dir
 #The name to give the analysis in GSEA
 analysis_name <- "miR155_vs_NegCtrl"
 
-#rank file to use in GSEA analysis.  
-rnk_file <- gene_list   # TODO: build GSEA-appropriate rank file
-
 run_gsea <- params$run_gsea
 ```
 
 ```{r gmt_file}
-# TODO: get the most recent one using code from lecture
 gmt_url <- "https://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
 
 filenames <- getURL(gmt_url)
@@ -199,23 +200,37 @@ if (!file.exists(gmt_file)) {
 # }
 ```
 
-```{r rank_degs}
-# TODO calculate DEGs rank values
+```{r rank_genes}
+# rank file to use in GSEA analysis.  
+gene_ranks = sign(dge_results$logFC) * -log10(dge_results$PValue)
 
+#create ranks file
+ranked_genelist <- cbind(dge_results$hgnc_symbol, gene_ranks)
+colnames(ranked_genelist) <- c("GeneName", "Rank")
+
+#sort ranks in decreasing order
+ranked_genelist <- ranked_genelist[order(as.numeric(ranked_genelist[, 2]), decreasing = TRUE), ]
+
+# write to file as a table
+rnk_path <- file.path(working_dir, paste0(analysis_name, "_Ranked_GeneList.rnk"))
+write.table(ranked_genelist, file = rnk_path, sep = "\t",
+            col.name = TRUE, row.names = FALSE, quote = FALSE)
 ```
 
 ```{r run_gsea}
 if(run_gsea){
   command <- paste("", gsea_jar,  
                    "GSEAPreRanked -gmx", gmt_file, 
-                   "-rnk" , file.path(working_dir, rnk_file), 
+                   "-rnk" , rnk_path, 
                    "-collapse false -nperm 1000 -scoring_scheme weighted", 
                    "-rpt_label ", analysis_name,
                    "  -plot_top_x 20 -rnd_seed 12345  -set_max 200",  
                    " -set_min 15 -zip_report false ",
                    " -out" , output_dir, 
                    " > gsea_output.txt", sep= " ")
-  system(command)
+  # TODO: uncomment for docker version
+  # system(command)
+  shell(command)
 }
 ```
 
@@ -278,7 +293,7 @@ TODO: link journal entry Additional "rough work"/trial code and reflections can 
 ## 7 References
 
 ```{r}
-citation("gprofiler2")
-citation("GSA")
-citation("RCurl")
+# citation("gprofiler2")
+# citation("GSA")
+# citation("RCurl")
 ```
